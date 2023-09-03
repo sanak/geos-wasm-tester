@@ -1,5 +1,5 @@
-// import initGeosJs from '../assets/geos.esm.js'
-import initGeosJs from 'https://cdn.skypack.dev/geos-wasm'
+import initGeosJs from './geos-wasm/docs/assets/geos.esm.js'
+// import initGeosJs from 'https://cdn.skypack.dev/geos-wasm'
 
 export default function Tester (engine) {
   const self = this

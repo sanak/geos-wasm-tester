@@ -1,21 +1,23 @@
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html lang="en">
   <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="/app-icon64.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GEOS WASM Tester</title>
-    <link rel="stylesheet" href="./lib/ol2/theme/default/style.css" type="text/css" />
-    <link rel="stylesheet" href="./lib/ol2/theme/default/style-patch.css" type="text/css" />
-    <link rel="stylesheet" href="./lib/ol2/examples/style.css" type="text/css" />
-    <link rel="stylesheet" href="tester.css" type="text/css">
-    <script src="./lib/ol2/OpenLayers.js"></script>
+    <link rel="stylesheet" href="/lib/ol2/theme/default/style.css" type="text/css" />
+    <link rel="stylesheet" href="/lib/ol2/theme/default/style-patch.css" type="text/css" />
+    <link rel="stylesheet" href="/lib/ol2/examples/style.css" type="text/css" />
+    <link rel="stylesheet" href="style.css" type="text/css">
+    <script src="/lib/ol2/OpenLayers.js"></script>
     <script type="module">
-      import Tester from "./tester.js"
+      import Tester from "./main.js"
       window.onload = () => {
         const tester = new Tester(OpenLayers)
         window.tester = tester
         tester.init()
-        tester.addTestXmls('./tests/testxml.json')
+        const path = location.href.replace('index.html', '')
+        tester.addTestXmls(`${path}/tests/testxml.json`)
       }
     </script>
   </head>

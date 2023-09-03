@@ -55,12 +55,12 @@
   min-width: 5.6em;
 }
 option.unary {
-  background-image: url("./images/unary-geom-function.png");
+  background-image: url("./assets/images/testbuilder/UnaryGeomFunction.png");
   background-repeat: no-repeat;
   color: blue;
 }
 option.binary {
-  background-image: url("./images/binary-geom-function.png");
+  background-image: url("./assets/images/testbuilder/BinaryGeomFunction.png");
   background-repeat: no-repeat;
   color: red;
 }
