@@ -1,0 +1,4 @@
+[submodule "geos-wasm"]
+	path = geos-wasm
+	url = https://github.com/chrispahm/geos-wasm.git
+	branch = main
