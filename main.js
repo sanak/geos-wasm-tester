@@ -14,67 +14,6 @@ export default function Tester (engine) {
   let geos, xmlhttp, xmldom
   let reader, writer
 
-  // Customize EditingToolbar
-  OpenLayers.Control.EditingToolbarExt = OpenLayers.Class(OpenLayers.Control.Panel, {
-    // Arrow function (=>) is not supported in ol2
-    initialize: function (layer, options) {
-      OpenLayers.Control.Panel.prototype.initialize.apply(this, [options])
-
-      const zoomNavis = ([
-        new OpenLayers.Control.ZoomBox(),
-        new OpenLayers.Control.Navigation()
-      ])
-      const drawFeatures = [
-        new OpenLayers.Control.DrawFeature(layer, OpenLayers.Handler.Point, { displayClass: 'olControlDrawFeaturePoint' }),
-        new OpenLayers.Control.DrawFeature(layer, OpenLayers.Handler.Path, { displayClass: 'olControlDrawFeaturePath' }),
-        new OpenLayers.Control.DrawFeature(layer, OpenLayers.Handler.Polygon, { displayClass: 'olControlDrawFeaturePolygon' })
-      ]
-      for (let i = 0; i < drawFeatures.length; i++) {
-        drawFeatures[i].featureAdded = function (feature) {
-          const strtype = getInputType()
-          setFeatureType(feature, strtype)
-          setFeatureStyle(feature, strtype)
-          if (strtype === 'a') {
-            if (self.featureA) {
-              destroyFeatures(layer, self.featureA)
-            }
-            self.featureA = feature
-          } else if (strtype === 'b') {
-            if (self.featureB) {
-              destroyFeatures(layer, self.featureB)
-            }
-            self.featureB = feature
-          }
-          self.updateInput()
-        }
-      }
-      const modifyFeature = new OpenLayers.Control.ModifyFeature(layer, { displayClass: 'olControlMoveFeature' })
-      modifyFeature.onModificationStart = function (feature) {
-        const strtype = getFeatureType(feature)
-        setInputType(strtype)
-        self.updateInput()
-        layer.redraw() // for vertex marker
-      }
-      modifyFeature.onModification = function (feature) {
-        self.updateInput()
-      }
-      modifyFeature.onModificationEnd = function (feature) {
-        self.updateInput()
-      }
-      this.addControls(zoomNavis.concat(drawFeatures.concat([modifyFeature])))
-    },
-
-    draw: function () {
-      const div = OpenLayers.Control.Panel.prototype.draw.apply(this, arguments)
-      if (this.defaultControl === null) {
-        this.defaultControl = this.controls[1]
-      }
-      return div
-    },
-
-    CLASS_NAME: 'OpenLayers.Control.EditingToolbar'
-  })
-
   this.init = async () => {
     const options = {
       units: 'm',
@@ -109,6 +48,22 @@ export default function Tester (engine) {
         select: OpenLayers.Feature.Vector.style.select
       })
     })
+    layerInput.events.on({
+      featureadded: onInputFeatureAdded,
+      beforefeaturemodified: function (event) {
+        const feature = event.feature
+        const strtype = getFeatureType(feature)
+        setInputType(strtype)
+        self.updateInput()
+        feature.layer.redraw() // for vertex marker
+      },
+      featuremodified: function (event) {
+        self.updateInput()
+      },
+      afterfeaturemodified: function (event) {
+        self.updateInput()
+      }
+    })
     layerOutput = new OpenLayers.Layer.Vector('Output Vector Layer')
 
     map.addLayers([graphic, layerInput, layerOutput])
@@ -141,6 +96,25 @@ export default function Tester (engine) {
       console.error(`init: ${ex}`)
       geos = null
     }
+  }
+
+  const onInputFeatureAdded = (event) => {
+    const feature = event.feature
+    const strtype = getInputType()
+    setFeatureType(feature, strtype)
+    setFeatureStyle(feature, strtype)
+    if (strtype === 'a') {
+      if (self.featureA) {
+        destroyFeatures(layerInput, self.featureA)
+      }
+      self.featureA = feature
+    } else if (strtype === 'b') {
+      if (self.featureB) {
+        destroyFeatures(layerInput, self.featureB)
+      }
+      self.featureB = feature
+    }
+    self.updateInput()
   }
 
   const toWkt = (feature) => {
@@ -183,6 +157,9 @@ export default function Tester (engine) {
     }
 
     const bounds = map.getExtent()
+    layerInput.events.un({
+      featureadded: onInputFeatureAdded
+    })
     if (feature.constructor !== Array) {
       bounds.extend(feature.geometry.getBounds())
       layer.addFeatures([feature])
@@ -192,6 +169,9 @@ export default function Tester (engine) {
       }
       layer.addFeatures(feature)
     }
+    layerInput.events.on({
+      featureadded: onInputFeatureAdded
+    })
     map.zoomToExtent(bounds)
   }
 
