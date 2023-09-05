@@ -428,7 +428,7 @@ export default function Tester (engine) {
     const divArg = document.getElementById('divArg' + idx)
     const lblArg = document.getElementById('lblArg' + idx)
     const txtArg = document.getElementById('txtArg' + idx)
-    divArg.style.display = visible ? 'block' : 'none'
+    divArg.style.display = visible ? 'flex' : 'none'
     lblArg.textContent = label // FireFox
     lblArg.innerText = label // IE
     txtArg.value = value

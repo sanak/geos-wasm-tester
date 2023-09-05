@@ -71,16 +71,18 @@ option.binary {
   flex: 1;
 }
 .arg {
-  display: none;
+  display: flex;
 }
 .arg > label {
-  display: inline-block;
   text-align: right;
-  width: 53%;
+  flex: 1;
+  width: 0;
 }
 .arg > input {
+  margin-left: 0.3em;
   text-align: right;
-  width: 43%;
+  flex: 1;
+  width: 0;
 }
 .compute {
   text-align: center;
@@ -112,13 +114,14 @@ option.binary {
   min-width: 110px;
   height: 75px;
 }
+.iotext {
+  flex: 1;
+  display: flex;
+}
 .iobutton {
   min-width: 60px;
   vertical-align: top;
   text-align: center;
-}
-.iotext {
-  flex: 1;
 }
 #lblA {
   color: blue;
@@ -128,7 +131,7 @@ option.binary {
 }
 #txtInput {
   font-size: 0.85em;
-  width: 100%;
+  flex: 1;
   min-height: 75px;
 }
 #lblResult {
@@ -139,7 +142,7 @@ option.binary {
 }
 #txtOutput {
   font-size: 0.85em;
-  width: 100%;
+  flex: 1;
   min-height: 75px;
 }
 
