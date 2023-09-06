@@ -980,6 +980,9 @@ export default function Tester (engine) {
     optDefault.text = ' --- Select Below ---'
     selTestXml.appendChild(optDefault)
     for (let i = 0; i < testXmlJson.length; i++) {
+      if (testXmlJson[i].startsWith('//')) {
+        continue
+      }
       const opt = document.createElement('option')
       opt.text = testXmlJson[i]
       opt.value = './tests/' + testXmlJson[i]
