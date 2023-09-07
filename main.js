@@ -117,7 +117,30 @@ export default function Tester (engine) {
     self.updateInput()
   }
 
-  const toWkt = (feature) => {
+  const geomFromWkt = (reader, wkt) => {
+    if (isEmpty(wkt)) {
+      return null
+    }
+    // const size = wkt.length + 1
+    // const wktPtr = geos.Module._malloc(size)
+    // // const wktArr = new Uint8Array(geos.Module.intArrayFromString(wkt))
+    // // geos.Module.HEAPU8.set(wktArr, wktPtr)
+    // geos.Module.stringToUTF8(wkt, wktPtr, size)
+    // const geom = geos.GEOSWKTReader_read(reader, wktPtr)
+    // geos.Module._free(wktPtr)
+    const geom = geos.GEOSWKTReader_read(reader, wkt)
+    return geom
+  }
+
+  const geomToWkt = (writer, geom) => {
+    // const wktPtr = geos.GEOSWKTWriter_write(writer, geom)
+    // const wkt = geos.Module.UTF8ToString(wktPtr)
+    // geos.GEOSFree(wktPtr)
+    const wkt = geos.GEOSWKTWriter_write(writer, geom)
+    return wkt
+  }
+
+  const featureToWkt = (feature) => {
     let str = ''
     if (isEmpty(feature)) {
       return str
@@ -140,7 +163,7 @@ export default function Tester (engine) {
     return str
   }
 
-  const fromWkt = (wkt) => {
+  const featureFromWkt = (wkt) => {
     if (isEmpty(wkt)) {
       return null
     }
@@ -192,7 +215,7 @@ export default function Tester (engine) {
     if (isEmpty(wkt)) {
       wkt = document.getElementById('txtInput').value
     }
-    const feature = fromWkt(wkt)
+    const feature = featureFromWkt(wkt)
 
     if (isEmpty(strtype)) {
       strtype = getInputType()
@@ -213,7 +236,7 @@ export default function Tester (engine) {
 
   const loadOutput = () => {
     if (!isEmpty(result)) {
-      const feature = fromWkt(result)
+      const feature = featureFromWkt(result)
       if (feature) {
         setFeatureStyle(feature, 'result')
         addFeatures(layerOutput, feature)
@@ -222,7 +245,7 @@ export default function Tester (engine) {
       }
     }
     if (!isEmpty(expected)) {
-      const feature = fromWkt(expected)
+      const feature = featureFromWkt(expected)
       if (feature) {
         setFeatureStyle(feature, 'expected')
         addFeatures(layerOutput, feature)
@@ -377,9 +400,9 @@ export default function Tester (engine) {
     const strtype = getInputType()
     let wkt = ''
     if (strtype === 'a' && self.featureA) {
-      wkt = toWkt(self.featureA)
+      wkt = featureToWkt(self.featureA)
     } else if (strtype === 'b' && self.featureB) {
-      wkt = toWkt(self.featureB)
+      wkt = featureToWkt(self.featureB)
     }
     document.getElementById('txtInput').value = wkt
     setDefaultStyle(strtype)
@@ -602,7 +625,7 @@ export default function Tester (engine) {
       if (!writer) {
         writer = geos.GEOSWKTWriter_create()
       }
-      geomA = geos.GEOSWKTReader_read(reader, toWkt(self.featureA))
+      geomA = geomFromWkt(reader, featureToWkt(self.featureA))
     }
 
     switch (opname.toLowerCase()) {
@@ -628,9 +651,9 @@ export default function Tester (engine) {
       case 'coverageunion':
         if (!isEmpty(geos)) {
           geomResult = geos[fncname](geomA)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
@@ -671,11 +694,11 @@ export default function Tester (engine) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geos.GEOSWKTReader_read(reader, toWkt(self.featureB))
+          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
           geomResult = geos[fncname](geomA, geomB)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
@@ -698,9 +721,19 @@ export default function Tester (engine) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geos.GEOSWKTReader_read(reader, toWkt(self.featureB))
+          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
           result = geos[fncname](geomA, geomB)
-          result = result.toString()
+          switch (result) {
+            case 0:
+              result = 'false'
+              break
+            case 1:
+              result = 'true'
+              break
+            case 2:
+              result = 'error' // TODO: error message
+              break
+          }
         }
         self.updateOutput()
         break
@@ -713,7 +746,7 @@ export default function Tester (engine) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geos.GEOSWKTReader_read(reader, toWkt(self.featureB))
+          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
           const valuePtr = geos.Module._malloc(8)
           result = geos[fncname](geomA, geomB, valuePtr)
           const value = geos.Module.getValue(valuePtr, 'double')
@@ -744,9 +777,9 @@ export default function Tester (engine) {
           }
 
           geomResult = geos[fncname](geomA, precision, flags)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
@@ -769,9 +802,9 @@ export default function Tester (engine) {
           quadsegs = parseInt(quadsegs)
 
           geomResult = geos[fncname](geomA, width, quadsegs)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
@@ -823,9 +856,9 @@ export default function Tester (engine) {
           mitreLimit = parseFloat(mitreLimit)
 
           geomResult = geos[fncname](geomA, width, quadsegs, endCapStyle, joinStyle, mitreLimit)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
@@ -866,9 +899,9 @@ export default function Tester (engine) {
           mitreLimit = parseFloat(mitreLimit)
 
           geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
@@ -887,9 +920,9 @@ export default function Tester (engine) {
           tolerance = parseFloat(tolerance)
 
           geomResult = geos[fncname](geomA, tolerance)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
@@ -909,7 +942,7 @@ export default function Tester (engine) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geos.GEOSWKTReader_read(reader, toWkt(self.featureB))
+          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
           result = geos[fncname](geomA, geomB, tolerance)
           result = result.toString()
         }
@@ -922,7 +955,7 @@ export default function Tester (engine) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geos.GEOSWKTReader_read(reader, toWkt(self.featureB))
+          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
           result = geos[fncname](geomA, geomB, pattern)
           result = result.toString()
         }
@@ -945,7 +978,7 @@ export default function Tester (engine) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geos.GEOSWKTReader_read(reader, toWkt(self.featureB))
+          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
           result = geos[fncname](geomA, geomB, bnr)
           result = result.toString()
         }
@@ -960,9 +993,9 @@ export default function Tester (engine) {
           }
           distance = parseFloat(distance)
           geomResult = geos[fncname](geomA, distance)
-          result = geos.GEOSWKTWriter_write(writer, geomResult)
+          result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
-            expected = geos.GEOSWKTWriter_write(writer, geos.GEOSWKTReader_read(reader, expected))
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
           }
         }
         self.updateOutput()
