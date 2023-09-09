@@ -129,7 +129,7 @@ option.binary {
 #lblB {
   color: red;
 }
-#txtInput {
+.iotext > textarea {
   font-size: 0.85em;
   flex: 1;
   min-height: 75px;

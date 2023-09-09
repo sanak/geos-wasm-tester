@@ -101,6 +101,7 @@
             </optgroup>
             <optgroup label="Distance">
               <option value="GEOSDistance" class="binary">distance</option>
+              <option value="GEOSDistanceWithin" class="binary">distanceWithin</option>
               <option value="GEOSNearestPoints" class="binary">nearestPoints</option>
               <option value="GEOSFrechetDistance" class="binary">frechetDistance</option>
               <option value="GEOSHausdorffDistance" class="binary">hausdorffDistance</option>
@@ -184,19 +185,20 @@
           <div class="iolabel">
             <div>
               <input type="radio" name="inputtype" id="radA" value="a" checked="checked"
-                onclick="tester.updateInput()"
+                onclick="tester.switchInput(this.value)"
               />
               <label for="radA" id="lblA">A</label>
             </div>
             <div>
               <input type="radio" name="inputtype" id="radB" value="b"
-                onclick="tester.updateInput()"
+                onclick="tester.switchInput(this.value)"
               />
               <label for="radB" id="lblB">B</label>
             </div>
           </div>
           <div class="iotext">
-            <textarea id="txtInput"></textarea>
+            <textarea id="txtInputA"></textarea>
+            <textarea id="txtInputB" style="display:none"></textarea>
           </div>
           <div class="iobutton">
             <div>
@@ -215,19 +217,20 @@
           <div class="iolabel">
             <div>
               <input type="radio" name="outputtype" id="radResult" value="result" checked="checked"
-                onclick="tester.updateOutput()"
+                onclick="tester.switchOutput(this.value)"
               />
               <label for="radResult" id="lblResult">Result</label>
             </div>
             <div>
               <input type="radio" name="outputtype" id="radExpected" value="expected"
-                onclick="tester.updateOutput()"
+                onclick="tester.switchOutput(this.value)"
               />
               <label for="radExpected" id="lblExpected">Expected</label>
             </div>
           </div>
           <div class="iotext">
-            <textarea id="txtOutput"></textarea>
+            <textarea id="txtResult"></textarea>
+            <textarea id="txtExpected" style="display:none"></textarea>
           </div>
           <div class="iobutton">
             <div>

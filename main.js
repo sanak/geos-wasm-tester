@@ -10,7 +10,6 @@ export default function Tester (engine) {
 
   let map, wktfmt, layerInput, layerOutput
   let featureResult, featureExpected
-  let result, expected
   let geos, xmlhttp, xmldom
   let reader, writer
 
@@ -72,8 +71,6 @@ export default function Tester (engine) {
     map.zoomToExtent(new OpenLayers.Bounds(-10, -10, 416, 416))
 
     // init controls and variables
-    result = ''
-    expected = ''
     document.getElementById('radA').click()
     self.updateOperation('envelope')
 
@@ -92,6 +89,8 @@ export default function Tester (engine) {
 
     try {
       geos = await initGeosJs()
+      reader = geos.GEOSWKTReader_create()
+      writer = geos.GEOSWKTWriter_create()
     } catch (ex) {
       console.error(`init: ${ex}`)
       geos = null
@@ -117,9 +116,20 @@ export default function Tester (engine) {
     self.updateInput()
   }
 
+  const isWkt = (str) => {
+    // TODO: Better definition
+    return str.match(/^[PLMG]+/)
+  }
+
+  const formatWkt = (wkt) => {
+    const geom = geos.GEOSWKTReader_read(reader, wkt)
+    const formatted = geos.GEOSWKTWriter_write(writer, geom)
+    return formatted
+  }
+
   const geomFromWkt = (reader, wkt) => {
     if (isEmpty(wkt)) {
-      return null
+      return 0
     }
     // const size = wkt.length + 1
     // const wktPtr = geos.Module._malloc(size)
@@ -133,6 +143,10 @@ export default function Tester (engine) {
   }
 
   const geomToWkt = (writer, geom) => {
+    if (geom === 0) {
+      return 'exception'
+    }
+
     // const wktPtr = geos.GEOSWKTWriter_write(writer, geom)
     // const wkt = geos.Module.UTF8ToString(wktPtr)
     // geos.GEOSFree(wktPtr)
@@ -167,11 +181,13 @@ export default function Tester (engine) {
     if (isEmpty(wkt)) {
       return null
     }
-    // // remove 'GEOMETRYCOLLECTION('+')' for OpenLayers
-    // const regexp = /GEOMETRYCOLLECTION\s*\(([\w,\s\(\)]+)\)/g
-    // wkt = wkt.replace(regexp, '$1')
     const feature = wktfmt.read(wkt)
-    return feature
+    // remove empty geometry from GEOMETRYCOLLECTION
+    if (!isEmpty(feature) && feature.constructor === Array) {
+      return feature.filter((f) => !isEmpty(f))
+    } else {
+      return feature
+    }
   }
 
   const addFeatures = (layer, feature) => {
@@ -188,14 +204,16 @@ export default function Tester (engine) {
       layer.addFeatures([feature])
     } else {
       for (let i = 0; i < feature.length; i++) {
-        bounds.extend(feature[i].geometry.getBounds())
+        if (!isEmpty(feature[i])) {
+          bounds.extend(feature[i].geometry.getBounds())
+        }
       }
       layer.addFeatures(feature)
     }
+    map.zoomToExtent(bounds)
     layerInput.events.on({
       featureadded: onInputFeatureAdded
     })
-    map.zoomToExtent(bounds)
   }
 
   const destroyFeatures = (layer, feature) => {
@@ -212,14 +230,25 @@ export default function Tester (engine) {
   }
 
   const loadInput = (wkt, strtype) => {
-    if (isEmpty(wkt)) {
-      wkt = document.getElementById('txtInput').value
-    }
-    const feature = featureFromWkt(wkt)
-
     if (isEmpty(strtype)) {
       strtype = getInputType()
     }
+    const txtInputA = document.getElementById('txtInputA')
+    const txtInputB = document.getElementById('txtInputB')
+    if (strtype === 'a') {
+      if (isEmpty(wkt)) {
+        wkt = txtInputA.value
+      } else {
+        txtInputA.value = wkt
+      }
+    } else if (strtype === 'b') {
+      if (isEmpty(wkt)) {
+        wkt = txtInputB.value
+      } else {
+        txtInputB.value = wkt
+      }
+    }
+    const feature = featureFromWkt(wkt)
     if (feature) {
       setFeatureType(feature, strtype)
       setFeatureStyle(feature, strtype)
@@ -234,7 +263,7 @@ export default function Tester (engine) {
     }
   }
 
-  const loadOutput = () => {
+  const loadOutput = (result, expected) => {
     if (!isEmpty(result)) {
       const feature = featureFromWkt(result)
       if (feature) {
@@ -290,20 +319,13 @@ export default function Tester (engine) {
     }
   }
 
-  const getOutputType = () => {
-    if (document.getElementById('radResult').checked) {
-      return 'result'
-    } else if (document.getElementById('radExpected').checked) {
-      return 'expected'
-    }
-    return 'result'
-  }
-
   const setOutputType = (strtype) => {
     if (strtype === 'result') {
       document.getElementById('radResult').checked = true
+      this.switchOutput('result')
     } else if (strtype === 'expected') {
       document.getElementById('radExpected').checked = true
+      this.switchOutput('expected')
     }
   }
 
@@ -396,55 +418,109 @@ export default function Tester (engine) {
     layerInput.setVisibility(visibility)
   }
 
+  this.switchInput = (strtype) => {
+    const txtInputA = document.getElementById('txtInputA')
+    const txtInputB = document.getElementById('txtInputB')
+    if (strtype === 'a') {
+      txtInputA.style.display = 'block'
+      txtInputB.style.display = 'none'
+    } else if (strtype === 'b') {
+      txtInputA.style.display = 'none'
+      txtInputB.style.display = 'block'
+    }
+    setDefaultStyle(strtype)
+  }
+
   this.updateInput = () => {
     const strtype = getInputType()
     let wkt = ''
     if (strtype === 'a' && self.featureA) {
       wkt = featureToWkt(self.featureA)
+      document.getElementById('txtInputA').value = wkt
     } else if (strtype === 'b' && self.featureB) {
       wkt = featureToWkt(self.featureB)
+      document.getElementById('txtInputB').value = wkt
     }
-    document.getElementById('txtInput').value = wkt
     setDefaultStyle(strtype)
   }
 
-  this.updateOutput = () => {
-    const strtype = getOutputType()
-    const txtOutput = document.getElementById('txtOutput')
+  this.switchOutput = (strtype) => {
+    const txtResult = document.getElementById('txtResult')
+    const txtExpected = document.getElementById('txtExpected')
     if (strtype === 'result') {
-      txtOutput.value = result
+      txtResult.style.display = 'block'
+      txtExpected.style.display = 'none'
     } else if (strtype === 'expected') {
-      txtOutput.value = expected
+      txtResult.style.display = 'none'
+      txtExpected.style.display = 'block'
     }
+    setDefaultStyle(strtype)
+  }
+
+  this.updateOutput = (result, expected, type) => {
+    const txtResult = document.getElementById('txtResult')
+    const txtExpected = document.getElementById('txtExpected')
+    switch (type) {
+      case 'boolean':
+        switch (result) {
+          case 0:
+            result = 'false'
+            break
+          case 1:
+            result = 'true'
+            break
+          case 2:
+            result = 'exception'
+            break
+        }
+        break
+      case 'float':
+        if (!isEmpty(expected)) {
+          expected = parseFloat(expected)
+        }
+        break
+    }
+    txtResult.value = result
+    txtExpected.value = expected
     if (!isEmpty(result) && !isEmpty(expected)) {
       if (result !== expected) {
-        txtOutput.style.backgroundColor = '#ffcccc'
+        // TODO: exualsExact with yellow color
+        txtResult.style.backgroundColor = '#ffcccc'
+        txtExpected.style.backgroundColor = '#ffcccc'
       } else {
-        txtOutput.style.backgroundColor = '#ccffcc'
+        txtResult.style.backgroundColor = '#ccffcc'
+        txtExpected.style.backgroundColor = '#ccffcc'
       }
     } else {
-      txtOutput.style.backgroundColor = '#ffffff'
+      txtResult.style.backgroundColor = '#ffffff'
+      txtExpected.style.backgroundColor = '#ffffff'
     }
   }
 
-  this.clearInput = (all) => {
-    if ((getInputType() === 'a' || all) && self.featureA) {
-      destroyFeatures(layerInput, self.featureA)
+  this.clearInput = (isAll) => {
+    if ((getInputType() === 'a' || isAll)) {
+      if (self.featureA) {
+        destroyFeatures(layerInput, self.featureA)
+      }
+      document.getElementById('txtInputA').value = ''
     }
-    if ((getInputType() === 'b' || all) && self.featureB) {
-      destroyFeatures(layerInput, self.featureB)
+    if ((getInputType() === 'b' || isAll)) {
+      if (self.featureB) {
+        destroyFeatures(layerInput, self.featureB)
+      }
+      document.getElementById('txtInputB').value = ''
     }
-    document.getElementById('txtInput').value = ''
   }
 
   this.clearOutput = () => {
-    result = ''
-    expected = ''
     destroyFeatures(layerOutput, featureResult)
     destroyFeatures(layerOutput, featureExpected)
-    const txtOutput = document.getElementById('txtOutput')
-    txtOutput.value = ''
-    txtOutput.style.backgroundColor = '#ffffff'
+    const txtResult = document.getElementById('txtResult')
+    const txtExpected = document.getElementById('txtExpected')
+    txtResult.value = ''
+    txtExpected.value = ''
+    txtResult.style.backgroundColor = '#ffffff'
+    txtExpected.style.backgroundColor = '#ffffff'
   }
 
   const setArgument = (idx, label, value, visible, disabled) => {
@@ -554,6 +630,10 @@ export default function Tester (engine) {
       case 'topologypreservesimplify':
         setArgument(2, 'Tolerance', '10', true, false)
         break
+      case 'distancewithin':
+        setArgument(2, 'Geometry', 'B', true, true)
+        setArgument(3, 'Distance', '0.00001', true, false) // TODO: reasonable initial value
+        break
       case 'largestemptycircle':
       case 'equalsexact':
         setArgument(2, 'Geometry', 'B', true, true)
@@ -595,38 +675,30 @@ export default function Tester (engine) {
     return true
   }
 
-  this.compute = (exp) => {
+  this.compute = (expected) => {
     self.clearOutput()
 
-    if (!isEmpty(exp)) {
-      expected = exp
-      document.getElementById('radExpected').disabled = false
-      if (isEmpty(geos)) {
-        setOutputType('expected')
-      }
+    const radExpected = document.getElementById('radExpected')
+    if (!isEmpty(expected)) {
+      radExpected.disabled = false
+      setOutputType('expected')
     } else {
-      document.getElementById('radExpected').disabled = true
+      radExpected.disabled = true
     }
 
+    const wktA = document.getElementById('txtInputA').value
+    const wktB = document.getElementById('txtInputB').value
     const opts = document.getElementById('selOperation').options
     const opname = opts[opts.selectedIndex].text
     const fncname = opts[opts.selectedIndex].value
 
-    if (isEmpty(self.featureA)) {
+    if (isEmpty(wktA)) {
       alert('all operation needs Geometry A.')
       return
     }
-    let geomA, geomB, geomResult
+    let geomB, geomResult, result
 
-    if (!isEmpty(geos)) {
-      if (!reader) {
-        reader = geos.GEOSWKTReader_create()
-      }
-      if (!writer) {
-        writer = geos.GEOSWKTWriter_create()
-      }
-      geomA = geomFromWkt(reader, featureToWkt(self.featureA))
-    }
+    const geomA = geomFromWkt(reader, wktA)
 
     switch (opname.toLowerCase()) {
       // simple unary (return geometry)
@@ -649,38 +721,30 @@ export default function Tester (engine) {
       case 'unaryunion':
       case 'node':
       case 'coverageunion':
-        if (!isEmpty(geos)) {
-          geomResult = geos[fncname](geomA)
-          result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
-        }
-        self.updateOutput()
-        loadOutput()
+        geomResult = geos[fncname](geomA)
+        result = geomToWkt(writer, geomResult)
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
       // simple unary (return scalar (boolean))
       case 'hasz':
       case 'isempty':
       case 'issimple':
       case 'isvalid':
-        if (!isEmpty(geos)) {
-          result = geos[fncname](geomA)
-          result = result.toString()
-        }
-        self.updateOutput()
+        result = geos[fncname](geomA)
+        self.updateOutput(result, expected, 'boolean')
         break
       // simple unary (return scalar (double))
       case 'area':
       case 'length':
-        if (!isEmpty(geos)) {
+        {
           const valuePtr = geos.Module._malloc(8)
           geos[fncname](geomA, valuePtr)
           const value = geos.Module.getValue(valuePtr, 'double')
-          result = value.toString()
+          result = value
           geos.Module._free(valuePtr)
         }
-        self.updateOutput()
+        self.updateOutput(result, expected, 'float')
         break
       // simple binary (return geometry)
       case 'nearestpoints':
@@ -689,20 +753,15 @@ export default function Tester (engine) {
       case 'symdifference':
       case 'union':
       case 'clipbyrect':
-        if (!isEmpty(geos)) {
-          if (isEmpty(self.featureB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
-          geomResult = geos[fncname](geomA, geomB)
-          result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
+        if (isEmpty(wktB)) {
+          alert('"' + opname + '" operation needs Geometry B.')
+          return
         }
-        self.updateOutput()
-        loadOutput()
+        geomB = geomFromWkt(reader, wktB)
+        geomResult = geos[fncname](geomA, geomB)
+        result = geomToWkt(writer, geomResult)
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
       // simple binary (return scalar (boolean))
       case 'contains':
@@ -716,48 +775,54 @@ export default function Tester (engine) {
       case 'touches':
       case 'within':
       case 'project':
-        if (!isEmpty(geos)) {
-          if (isEmpty(self.featureB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
-          result = geos[fncname](geomA, geomB)
-          switch (result) {
-            case 0:
-              result = 'false'
-              break
-            case 1:
-              result = 'true'
-              break
-            case 2:
-              result = 'error' // TODO: error message
-              break
-          }
+        if (isEmpty(wktB)) {
+          alert('"' + opname + '" operation needs Geometry B.')
+          return
         }
-        self.updateOutput()
+        geomB = geomFromWkt(reader, wktB)
+        result = geos[fncname](geomA, geomB)
+        self.updateOutput(result, expected, 'boolean')
         break
       // simple binary (return scalar (double))
       case 'distance':
       case 'frechetdistance':
       case 'hausdorffdistance':
-        if (!isEmpty(geos)) {
-          if (isEmpty(self.featureB)) {
+        {
+          if (isEmpty(wktB)) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
+          geomB = geomFromWkt(reader, wktB)
           const valuePtr = geos.Module._malloc(8)
           result = geos[fncname](geomA, geomB, valuePtr)
           const value = geos.Module.getValue(valuePtr, 'double')
-          result = value.toString()
+          result = value
           geos.Module._free(valuePtr)
         }
-        self.updateOutput()
+        self.updateOutput(result, expected, 'float')
         break
       // has arguments
+      case 'distancewithin':
+        {
+          if (isEmpty(wktB)) {
+            alert('"' + opname + '" operation needs Geometry B.')
+            return
+          }
+          geomB = geomFromWkt(reader, wktB)
+
+          let distance = document.getElementById('txtArg3').value
+          if (isNaN(distance)) {
+            alert('Distance value must be number.')
+            return
+          }
+          distance = parseFloat(distance)
+
+          result = geos[fncname](geomA, geomB, distance)
+        }
+        self.updateOutput(result, expected, 'boolean')
+        break
       case 'setprecision':
-        if (!isEmpty(geos)) {
+        {
           let precision = document.getElementById('txtArg2').value
           if (isNaN(precision)) {
             alert('Precision value must be number.')
@@ -778,15 +843,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, precision, flags)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
         }
-        self.updateOutput()
-        loadOutput()
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
       case 'buffer':
-        if (!isEmpty(geos)) {
+        {
           let width = document.getElementById('txtArg2').value
           if (isNaN(width)) {
             alert('Width value must be number.')
@@ -803,15 +865,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, width, quadsegs)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
         }
-        self.updateOutput()
-        loadOutput()
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
       case 'bufferwithstyle':
-        if (!isEmpty(geos)) {
+        {
           let width = document.getElementById('txtArg2').value
           if (isNaN(width)) {
             alert('Width value must be number.')
@@ -857,15 +916,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, width, quadsegs, endCapStyle, joinStyle, mitreLimit)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
         }
-        self.updateOutput()
-        loadOutput()
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
       case 'offsetcurve':
-        if (!isEmpty(geos)) {
+        {
           let width = document.getElementById('txtArg2').value
           if (isNaN(width)) {
             alert('Width value must be number.')
@@ -900,18 +956,15 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
         }
-        self.updateOutput()
-        loadOutput()
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
       case 'densify':
       case 'maximuminscribedcircle':
       case 'simplify':
       case 'topologypreservesimplify':
-        if (!isEmpty(geos)) {
+        {
           let tolerance = document.getElementById('txtArg2').value
           if (isNaN(tolerance)) {
             alert('Tolerance value must be number.')
@@ -921,16 +974,19 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, tolerance)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
         }
-        self.updateOutput()
-        loadOutput()
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
       case 'largestemptycircle':
       case 'equalsexact':
-        if (!isEmpty(geos)) {
+        {
+          if (isEmpty(wktB)) {
+            alert('"' + opname + '" operation needs Geometry B.')
+            return
+          }
+          geomB = geomFromWkt(reader, wktB)
+
           let tolerance = document.getElementById('txtArg3').value
           if (isNaN(tolerance)) {
             alert('Tolerance value must be number.')
@@ -938,31 +994,32 @@ export default function Tester (engine) {
           }
           tolerance = parseFloat(tolerance)
 
-          if (isEmpty(self.featureB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
           result = geos[fncname](geomA, geomB, tolerance)
-          result = result.toString()
         }
-        self.updateOutput()
+        self.updateOutput(result, expected, 'boolean')
         break
       case 'relatepattern':
-        if (!isEmpty(geos)) {
-          const pattern = document.getElementById('txtArg3').value
-          if (isEmpty(self.featureB)) {
+        {
+          if (isEmpty(wktB)) {
             alert('"' + opname + '" operation needs Geometry B.')
             return
           }
-          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
+          geomB = geomFromWkt(reader, wktB)
+
+          const pattern = document.getElementById('txtArg3').value
+
           result = geos[fncname](geomA, geomB, pattern)
-          result = result.toString()
         }
-        self.updateOutput()
+        self.updateOutput(result, expected, 'boolean')
         break
       case 'relateboundarynoderule':
-        if (!isEmpty(geos)) {
+        {
+          if (isEmpty(wktB)) {
+            alert('"' + opname + '" operation needs Geometry B.')
+            return
+          }
+          geomB = geomFromWkt(reader, wktB)
+
           let bnr = document.getElementById('txtArg3').value
           if (isNaN(bnr)) {
             alert('Boundary Node Rule value must be number (1-4).')
@@ -974,32 +1031,25 @@ export default function Tester (engine) {
               return
             }
           }
-          if (isEmpty(self.featureB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, featureToWkt(self.featureB))
+
           result = geos[fncname](geomA, geomB, bnr)
-          result = result.toString()
         }
-        self.updateOutput()
+        self.updateOutput(result, expected, 'string')
         break
       case 'interpolate':
-        if (!isEmpty(geos)) {
+        {
           let distance = document.getElementById('txtArg2').value
           if (isNaN(distance)) {
             alert('Distance value must be number.')
             return
           }
           distance = parseFloat(distance)
+
           geomResult = geos[fncname](geomA, distance)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
         }
-        self.updateOutput()
-        loadOutput()
+        self.updateOutput(result, expected, 'wkt')
+        loadOutput(result, expected)
         break
     }
   }
@@ -1066,12 +1116,12 @@ export default function Tester (engine) {
 
     const nodeCase = xmldom.getElementsByTagName('case')[caseIdx - 1]
     let a = nodeCase.getElementsByTagName('a')[0].firstChild.data
-    a = a.replace(/^\s+|\n|\s+$/g, '')
+    a = formatWkt(a)
     let b = null
     const nodeBs = nodeCase.getElementsByTagName('b')
     if (nodeBs.length > 0) {
       b = nodeBs[0].firstChild.data
-      b = b.replace(/^\s+|\n|\s+$/g, '')
+      b = formatWkt(b)
     }
     const nodeTest = nodeCase.getElementsByTagName('test')[0]
     const nodeOp = nodeTest.getElementsByTagName('op')[0]
@@ -1082,8 +1132,11 @@ export default function Tester (engine) {
     const arg4 = nodeOp.getAttribute('arg4')
     const arg5 = nodeOp.getAttribute('arg5')
     const arg6 = nodeOp.getAttribute('arg6')
-    let exp = nodeOp.firstChild.data
-    exp = exp.replace(/^\s+|\n|\s+$/g, '')
+    let expected = nodeOp.firstChild.data
+    expected = expected.replace(/^\s+|\n|\s+$/g, '')
+    if (isWkt(expected)) {
+      expected = formatWkt(expected)
+    }
     switch (opname.toLowerCase()) {
       case 'copy':
         opname = 'clone'
@@ -1103,11 +1156,19 @@ export default function Tester (engine) {
       case 'simplifytp':
         opname = 'topologyPreserveSimplify'
         break
+      case 'iswithindistance':
+        opname = 'distanceWithin'
+        break
       case 'relate':
         opname = 'relatePattern'
         break
       case 'relatebnr':
         opname = 'relateBoundaryNodeRule'
+        break
+      case 'union':
+        if (arg2 !== 'B') {
+          opname = 'unaryUnion'
+        }
         break
       case 'cliprect':
         opname = 'clipByRect'
@@ -1115,13 +1176,11 @@ export default function Tester (engine) {
     }
     // console.log(`a:\t${a}\nb:\t${b}\nopname:\t${opname}\narg1:\t${arg1}\narg2:\t${arg2}\narg3:\t${arg3}\narg4:\t${arg4}\narg5:\t${arg5}\narg6:\t${arg6}\nexp:\t${exp}`)
     loadInput(a, 'a')
-    self.updateInput()
     if (!isEmpty(b)) {
       loadInput(b, 'b')
-      self.updateInput()
     }
     if (self.updateOperation(opname, arg1, arg2, arg3, arg4, arg5, arg6)) {
-      self.compute(exp)
+      self.compute(expected)
     }
   }
 }
