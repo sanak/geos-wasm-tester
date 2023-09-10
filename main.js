@@ -147,6 +147,7 @@ export default function Tester (engine) {
       return 'exception'
     }
 
+    geos.GEOSNormalize(geom)
     // const wktPtr = geos.GEOSWKTWriter_write(writer, geom)
     // const wkt = geos.Module.UTF8ToString(wktPtr)
     // geos.GEOSFree(wktPtr)
@@ -457,7 +458,7 @@ export default function Tester (engine) {
     setDefaultStyle(strtype)
   }
 
-  this.updateOutput = (result, expected, type) => {
+  const updateOutput = (result, expected, type) => {
     const txtResult = document.getElementById('txtResult')
     const txtExpected = document.getElementById('txtExpected')
     switch (type) {
@@ -723,7 +724,10 @@ export default function Tester (engine) {
       case 'coverageunion':
         geomResult = geos[fncname](geomA)
         result = geomToWkt(writer, geomResult)
-        self.updateOutput(result, expected, 'wkt')
+        if (!isEmpty(expected)) {
+          expected = geomToWkt(writer, geomFromWkt(reader, expected))
+        }
+        updateOutput(result, expected, 'wkt')
         loadOutput(result, expected)
         break
       // simple unary (return scalar (boolean))
@@ -732,7 +736,7 @@ export default function Tester (engine) {
       case 'issimple':
       case 'isvalid':
         result = geos[fncname](geomA)
-        self.updateOutput(result, expected, 'boolean')
+        updateOutput(result, expected, 'boolean')
         break
       // simple unary (return scalar (double))
       case 'area':
@@ -743,8 +747,8 @@ export default function Tester (engine) {
           const value = geos.Module.getValue(valuePtr, 'double')
           result = value
           geos.Module._free(valuePtr)
+          updateOutput(result, expected, 'float')
         }
-        self.updateOutput(result, expected, 'float')
         break
       // simple binary (return geometry)
       case 'nearestpoints':
@@ -760,7 +764,10 @@ export default function Tester (engine) {
         geomB = geomFromWkt(reader, wktB)
         geomResult = geos[fncname](geomA, geomB)
         result = geomToWkt(writer, geomResult)
-        self.updateOutput(result, expected, 'wkt')
+        if (!isEmpty(expected)) {
+          expected = geomToWkt(writer, geomFromWkt(reader, expected))
+        }
+        updateOutput(result, expected, 'wkt')
         loadOutput(result, expected)
         break
       // simple binary (return scalar (boolean))
@@ -781,7 +788,7 @@ export default function Tester (engine) {
         }
         geomB = geomFromWkt(reader, wktB)
         result = geos[fncname](geomA, geomB)
-        self.updateOutput(result, expected, 'boolean')
+        updateOutput(result, expected, 'boolean')
         break
       // simple binary (return scalar (double))
       case 'distance':
@@ -798,8 +805,8 @@ export default function Tester (engine) {
           const value = geos.Module.getValue(valuePtr, 'double')
           result = value
           geos.Module._free(valuePtr)
+          updateOutput(result, expected, 'float')
         }
-        self.updateOutput(result, expected, 'float')
         break
       // has arguments
       case 'distancewithin':
@@ -818,8 +825,8 @@ export default function Tester (engine) {
           distance = parseFloat(distance)
 
           result = geos[fncname](geomA, geomB, distance)
+          updateOutput(result, expected, 'boolean')
         }
-        self.updateOutput(result, expected, 'boolean')
         break
       case 'setprecision':
         {
@@ -843,9 +850,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, precision, flags)
           result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
         }
-        self.updateOutput(result, expected, 'wkt')
-        loadOutput(result, expected)
         break
       case 'buffer':
         {
@@ -865,9 +875,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, width, quadsegs)
           result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
         }
-        self.updateOutput(result, expected, 'wkt')
-        loadOutput(result, expected)
         break
       case 'bufferwithstyle':
         {
@@ -916,9 +929,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, width, quadsegs, endCapStyle, joinStyle, mitreLimit)
           result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
         }
-        self.updateOutput(result, expected, 'wkt')
-        loadOutput(result, expected)
         break
       case 'offsetcurve':
         {
@@ -956,9 +972,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit)
           result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
         }
-        self.updateOutput(result, expected, 'wkt')
-        loadOutput(result, expected)
         break
       case 'densify':
       case 'maximuminscribedcircle':
@@ -974,9 +993,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, tolerance)
           result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
         }
-        self.updateOutput(result, expected, 'wkt')
-        loadOutput(result, expected)
         break
       case 'largestemptycircle':
       case 'equalsexact':
@@ -995,8 +1017,8 @@ export default function Tester (engine) {
           tolerance = parseFloat(tolerance)
 
           result = geos[fncname](geomA, geomB, tolerance)
+          updateOutput(result, expected, 'boolean')
         }
-        self.updateOutput(result, expected, 'boolean')
         break
       case 'relatepattern':
         {
@@ -1009,8 +1031,8 @@ export default function Tester (engine) {
           const pattern = document.getElementById('txtArg3').value
 
           result = geos[fncname](geomA, geomB, pattern)
+          updateOutput(result, expected, 'boolean')
         }
-        self.updateOutput(result, expected, 'boolean')
         break
       case 'relateboundarynoderule':
         {
@@ -1033,8 +1055,8 @@ export default function Tester (engine) {
           }
 
           result = geos[fncname](geomA, geomB, bnr)
+          updateOutput(result, expected, 'string')
         }
-        self.updateOutput(result, expected, 'string')
         break
       case 'interpolate':
         {
@@ -1047,9 +1069,12 @@ export default function Tester (engine) {
 
           geomResult = geos[fncname](geomA, distance)
           result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
         }
-        self.updateOutput(result, expected, 'wkt')
-        loadOutput(result, expected)
         break
     }
   }
@@ -1095,8 +1120,8 @@ export default function Tester (engine) {
       const nodeCases = xmldom.getElementsByTagName('case')
       optsTestCase.length = nodeCases.length + 1
       for (let i = 0; i < nodeCases.length; i++) {
-        optsTestCase[i + 1].text =
-          nodeCases[i].getElementsByTagName('desc')[0].firstChild.data
+        const desc = nodeCases[i].getElementsByTagName('desc')
+        optsTestCase[i + 1].text = `# ${i + 1}${desc.length > 0 ? ' - ' + desc[0].firstChild.data : ''}`
       }
     }
   }
