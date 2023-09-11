@@ -10,7 +10,7 @@ export default function Tester (engine) {
 
   let map, wktfmt, layerInput, layerOutput
   let featureResult, featureExpected
-  let geos, xmlhttp, xmldom
+  let geos, xmldom
   let reader, writer
 
   this.init = async () => {
@@ -73,19 +73,6 @@ export default function Tester (engine) {
     // init controls and variables
     document.getElementById('radA').click()
     self.updateOperation('envelope')
-
-    // load embedded objects
-    const url = location.toString()
-    if (url.indexOf('http://') === 0 || url.indexOf('https://') === 0) {
-      try {
-        xmlhttp = new XMLHttpRequest()
-      } catch (ex) {}
-    }
-    if (isEmpty(xmlhttp) && isEmpty(xmldom)) {
-      document.getElementById('selTestXml').disabled = true
-      document.getElementById('btnLoad').disabled = true
-      document.getElementById('selTestCase').disabled = true
-    }
 
     try {
       geos = await initGeosJs()
@@ -1107,7 +1094,7 @@ export default function Tester (engine) {
     }
   }
 
-  this.loadTestXml = () => {
+  this.loadTestXml = async () => {
     const optsTestXml = document.getElementById('selTestXml').options
     const optsTestCase = document.getElementById('selTestCase').options
 
@@ -1119,11 +1106,9 @@ export default function Tester (engine) {
     }
     const filename = optsTestXml[optsTestXml.selectedIndex].value
 
-    if (!isEmpty(xmlhttp)) {
-      xmlhttp.open('get', filename, false)
-      xmlhttp.send(null)
-      xmldom = xmlhttp.responseXML
-    }
+    const response = await fetch(filename)
+    const xmltext = await response.text()
+    xmldom = new DOMParser().parseFromString(xmltext, 'text/xml')
 
     if (!isEmpty(xmldom)) {
       const nodeCases = xmldom.getElementsByTagName('case')
