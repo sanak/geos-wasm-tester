@@ -126,6 +126,15 @@ export default function Tester (engine) {
     // const geom = geos.GEOSWKTReader_read(reader, wktPtr)
     // geos.Module._free(wktPtr)
     const geom = geos.GEOSWKTReader_read(reader, wkt)
+
+    if (document.getElementById('selPrecisionModel').value === 'FIXED') {
+      const scale = document.getElementById('txtFixedScale').value
+      if (!isNaN(scale)) {
+        const fixedGeom = geos.GEOSGeom_setPrecision(geom, scale, 0)
+        geos.GEOSGeom_destroy(geom)
+        return fixedGeom
+      }
+    }
     return geom
   }
 
@@ -415,6 +424,18 @@ export default function Tester (engine) {
     }
   }
 
+  const updatePrecisionModel = (type, scale) => {
+    const selPrecisionModel = document.getElementById('selPrecisionModel')
+    if (type === 'FLOATING' || type === 'FLOATING_SINGLE') {
+      selPrecisionModel.value = type
+    } else if (!isEmpty(scale)) {
+      selPrecisionModel.value = 'FIXED'
+      const txtFixedScale = document.getElementById('txtFixedScale')
+      txtFixedScale.value = scale
+    }
+    self.switchFixedScale(selPrecisionModel.value)
+  }
+
   this.switchInput = (strtype) => {
     const txtInputA = document.getElementById('txtInputA')
     const txtInputB = document.getElementById('txtInputB')
@@ -481,7 +502,6 @@ export default function Tester (engine) {
     txtExpected.value = expected
     if (!isEmpty(result) && !isEmpty(expected)) {
       if (result !== expected) {
-        // TODO: exualsExact with yellow color
         txtResult.style.backgroundColor = '#ffcccc'
         txtExpected.style.backgroundColor = '#ffcccc'
       } else {
@@ -1132,6 +1152,11 @@ export default function Tester (engine) {
     if (caseIdx === 0) {
       return
     }
+
+    const nodePM = xmldom.getElementsByTagName('precisionModel')[0]
+    const pmType = nodePM.getAttribute('type')
+    const pmScale = nodePM.getAttribute('scale')
+    updatePrecisionModel(pmType, pmScale)
 
     const nodeCase = xmldom.getElementsByTagName('case')[caseIdx - 1]
     let a = nodeCase.getElementsByTagName('a')[0].firstChild.data
