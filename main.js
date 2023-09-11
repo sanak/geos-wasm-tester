@@ -419,6 +419,15 @@ export default function Tester (engine) {
     layerInput.setVisibility(visibility)
   }
 
+  this.switchFixedScale = (selected) => {
+    const divFixedScale = document.getElementById('divFixedScale')
+    if (selected === 'FIXED') {
+      divFixedScale.style.display = 'block'
+    } else {
+      divFixedScale.style.display = 'none'
+    }
+  }
+
   this.switchInput = (strtype) => {
     const txtInputA = document.getElementById('txtInputA')
     const txtInputB = document.getElementById('txtInputB')

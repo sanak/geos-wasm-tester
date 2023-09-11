@@ -174,10 +174,27 @@
       <div class="right">
         <div id="map"></div>
         <div class="map-status">
-          <input type="checkbox" id="chkDisplay" name="chkDisplay" checked="checked"
-            onclick="tester.displayInputGeometries(this.checked)"
-          />
-          <label for="chkDisplay">Display Input Geometries</label>
+          <div>
+            <input type="checkbox" id="chkDisplay" name="chkDisplay" checked="checked"
+              onclick="tester.displayInputGeometries(this.checked)"
+            />
+            <img src="./assets/images/testbuilder/BinaryGeomFunction.png" title="Display Input Geometries"/>
+          </div>
+          <div class="vertical-separator"></div>
+          <div class="pm">
+            <div>
+              <label for="selPrecisionModel">PM</label>
+              <select name="selPrecisionModel" id="selPrecisionModel" onchange="tester.switchFixedScale(this.value)">
+                <option value="FLOATING" selected="selected">Floating</option>
+                <option value="FLOATING_SINGLE">Floating-Single</option>
+                <option value="FIXED">Fixed</option>
+              </select>
+            </div>
+            <div id="divFixedScale" style="display:none">
+              <label for="txtFixedScale" id="lblFixedScale">Scale</label>
+              <input type="text" id="txtFixedScale" value="1.0" />
+            </div>
+          </div>
         </div>
       </div>
       <div class="bottom">
