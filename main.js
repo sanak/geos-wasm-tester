@@ -641,6 +641,7 @@ export default function Tester (engine) {
       case 'overlaps':
       case 'touches':
       case 'within':
+      case 'relate':
       case 'project':
       case 'distance':
       case 'frechetdistance':
@@ -750,7 +751,6 @@ export default function Tester (engine) {
       case 'clone':
       case 'envelope':
       case 'linemerge':
-      case 'normalize':
       case 'reverse':
       case 'makevalid':
       case 'boundary':
@@ -794,8 +794,20 @@ export default function Tester (engine) {
           updateOutput(result, expected, 'float')
         }
         break
+      // in-place unary (return scalar (int))
+      case 'normalize':
+        {
+          const ret = geos[fncname](geomA)
+          if (ret === 0) {
+            result = geomToWkt(writer, geomA)
+            updateOutput(result, expected, 'wkt')
+            loadOutput(result, expected)
+          } else if (ret === -1) {
+            result = 'exception'
+          }
+        }
+        break
       // simple binary (return geometry)
-      case 'nearestpoints':
       case 'difference':
       case 'intersection':
       case 'symdifference':
@@ -813,6 +825,25 @@ export default function Tester (engine) {
         }
         updateOutput(result, expected, 'wkt')
         loadOutput(result, expected)
+        break
+      // simple binary (return coordseq)
+      case 'nearestpoints':
+        {
+          // TODO: fix geos-wasm return type
+          if (isEmpty(wktB)) {
+            alert('"' + opname + '" operation needs Geometry B.')
+            return
+          }
+          geomB = geomFromWkt(reader, wktB)
+          const coordSeq = geos[fncname](geomA, geomB)
+          geomResult = geos.GEOSGeom_createLineString(coordSeq)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
         break
       // simple binary (return scalar (boolean))
       case 'contains':
@@ -851,6 +882,17 @@ export default function Tester (engine) {
           geos.Module._free(valuePtr)
           updateOutput(result, expected, 'float')
         }
+        break
+      // simple binary (return scalar (string))
+      case 'relate':
+        if (isEmpty(wktB)) {
+          alert('"' + opname + '" operation needs Geometry B.')
+          return
+        }
+        geomB = geomFromWkt(reader, wktB)
+
+        result = geos[fncname](geomA, geomB)
+        updateOutput(result, expected, 'string')
         break
       // has arguments
       case 'distancewithin':
@@ -1234,6 +1276,9 @@ export default function Tester (engine) {
         break
       case 'iswithindistance':
         opname = 'distanceWithin'
+        break
+      case 'relatestring':
+        opname = 'relate'
         break
       case 'relate':
         opname = 'relatePattern'
