@@ -192,25 +192,50 @@ export default function Tester (engine) {
       return
     }
 
-    const bounds = map.getExtent()
     layerInput.events.un({
       featureadded: onInputFeatureAdded
     })
     if (feature.constructor !== Array) {
-      bounds.extend(feature.geometry.getBounds())
       layer.addFeatures([feature])
     } else {
-      for (let i = 0; i < feature.length; i++) {
-        if (!isEmpty(feature[i])) {
-          bounds.extend(feature[i].geometry.getBounds())
-        }
-      }
       layer.addFeatures(feature)
     }
-    map.zoomToExtent(bounds)
     layerInput.events.on({
       featureadded: onInputFeatureAdded
     })
+  }
+
+  this.zoomToExtent = (feature, isFull) => {
+    let bounds
+    if (!isEmpty(feature) && !isFull) {
+      if (feature.constructor !== Array) {
+        bounds = feature.geometry.getBounds()
+      } else {
+        for (let i = 0; i < feature.length; i++) {
+          if (!isEmpty(feature[i])) {
+            if (isEmpty(bounds)) {
+              bounds = feature[i].geometry.getBounds()
+            } else {
+              bounds.extend(feature[i].geometry.getBounds())
+            }
+          }
+        }
+      }
+    } else if (isFull) {
+      const features = layerInput.features.concat(layerOutput.features)
+      for (let i = 0; i < features.length; i++) {
+        if (!isEmpty(features[i])) {
+          if (isEmpty(bounds)) {
+            bounds = features[i].geometry.getBounds()
+          } else {
+            bounds.extend(features[i].geometry.getBounds())
+          }
+        }
+      }
+    }
+    if (!isEmpty(bounds)) {
+      map.zoomToExtent(bounds)
+    }
   }
 
   const destroyFeatures = (layer, feature) => {
@@ -226,7 +251,7 @@ export default function Tester (engine) {
     feature = null
   }
 
-  const loadInput = (wkt, strtype) => {
+  this.loadInput = (wkt, strtype) => {
     if (isEmpty(strtype)) {
       strtype = getInputType()
     }
@@ -257,6 +282,7 @@ export default function Tester (engine) {
         destroyFeatures(layerInput, self.featureB)
         self.featureB = feature
       }
+      self.zoomToExtent(feature, false)
     }
   }
 
@@ -279,6 +305,7 @@ export default function Tester (engine) {
         featureExpected = feature
       }
     }
+    self.zoomToExtent(null, true)
   }
 
   const isEmpty = (value) => {
@@ -701,6 +728,7 @@ export default function Tester (engine) {
       setOutputType('expected')
     } else {
       radExpected.disabled = true
+      setOutputType('result')
     }
 
     const wktA = document.getElementById('txtInputA').value
@@ -1154,9 +1182,13 @@ export default function Tester (engine) {
     }
 
     const nodePM = xmldom.getElementsByTagName('precisionModel')[0]
-    const pmType = nodePM.getAttribute('type')
-    const pmScale = nodePM.getAttribute('scale')
-    updatePrecisionModel(pmType, pmScale)
+    if (!isEmpty(nodePM)) {
+      const pmType = nodePM.getAttribute('type')
+      const pmScale = nodePM.getAttribute('scale')
+      updatePrecisionModel(pmType, pmScale)
+    } else {
+      updatePrecisionModel('FLOATING', null)
+    }
 
     const nodeCase = xmldom.getElementsByTagName('case')[caseIdx - 1]
     let a = nodeCase.getElementsByTagName('a')[0].firstChild.data
@@ -1219,9 +1251,9 @@ export default function Tester (engine) {
         break
     }
     // console.log(`a:\t${a}\nb:\t${b}\nopname:\t${opname}\narg1:\t${arg1}\narg2:\t${arg2}\narg3:\t${arg3}\narg4:\t${arg4}\narg5:\t${arg5}\narg6:\t${arg6}\nexp:\t${exp}`)
-    loadInput(a, 'a')
+    self.loadInput(a, 'a')
     if (!isEmpty(b)) {
-      loadInput(b, 'b')
+      self.loadInput(b, 'b')
     }
     if (self.updateOperation(opname, arg1, arg2, arg3, arg4, arg5, arg6)) {
       self.compute(expected)
