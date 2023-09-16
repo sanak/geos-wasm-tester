@@ -18,7 +18,7 @@
     "TestEqualsExact.xml",
     "TestInteriorPoint.xml",
     "TestIntersectsPL.xml",
-    "//--todo--/TestMinimumClearance.xml",
+    "TestMinimumClearance.xml",
     "//--todo--/TestNGOverlayA.xml",
     "//--todo--/TestNGOverlayAPrec.xml",
     "//--todo--/TestNGOverlayEmpty.xml",

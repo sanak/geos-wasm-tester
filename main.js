@@ -519,6 +519,11 @@ export default function Tester (engine) {
             break
         }
         break
+      case 'int':
+        if (!isEmpty(expected)) {
+          expected = parseInt(expected)
+        }
+        break
       case 'float':
         if (!isEmpty(expected)) {
           expected = parseFloat(expected)
@@ -602,6 +607,7 @@ export default function Tester (engine) {
       case 'envelope':
       case 'linemerge':
       case 'normalize':
+      case 'minimumclearanceline':
       case 'reverse':
       case 'makevalid':
       case 'boundary':
@@ -705,6 +711,7 @@ export default function Tester (engine) {
         setArgument(2, 'Geometry', 'B', true, true)
         setArgument(3, 'Boundary Node Rule', '1', true, false)
         break
+      case 'minimumclearance':
       case 'interpolate':
         setArgument(2, 'Distance', '10', true, false)
         break
@@ -764,6 +771,7 @@ export default function Tester (engine) {
       case 'clone':
       case 'envelope':
       case 'linemerge':
+      case 'minimumclearanceline':
       case 'reverse':
       case 'makevalid':
       case 'boundary':
@@ -818,6 +826,21 @@ export default function Tester (engine) {
           } else if (ret === -1) {
             result = 'exception'
           }
+        }
+        break
+      // simple unary (return scalar (int))
+      case 'minimumclearance':
+        {
+          let distance = document.getElementById('txtArg2').value
+          if (isNaN(distance)) {
+            alert('Distance value must be number.')
+            return
+          }
+          distance = parseFloat(distance)
+
+          geomResult = geos[fncname](geomA, distance)
+          updateOutput(result, expected, 'int')
+          loadOutput(result, expected)
         }
         break
       // simple binary (return geometry)
@@ -1361,6 +1384,12 @@ export default function Tester (engine) {
     switch (opname.toLowerCase()) {
       case 'copy':
         opname = 'clone'
+        break
+      case 'minclearance':
+        opname = 'minimumclearance'
+        break
+      case 'minclearanceline':
+        opname = 'minimumclearanceline'
         break
       case 'reduceprecision':
         opname = 'setPrecision'
