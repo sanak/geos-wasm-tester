@@ -1087,6 +1087,29 @@ export default function Tester (engine) {
         }
         break
       case 'largestemptycircle':
+        {
+          if (isEmpty(wktB)) {
+            alert('"' + opname + '" operation needs Geometry B.')
+            return
+          }
+          geomB = geomFromWkt(reader, wktB)
+
+          let tolerance = document.getElementById('txtArg3').value
+          if (isNaN(tolerance)) {
+            alert('Tolerance value must be number.')
+            return
+          }
+          tolerance = parseFloat(tolerance)
+
+          geomResult = geos[fncname](geomA, geomB, tolerance)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
+        break
       case 'equalsexact':
         {
           if (isEmpty(wktB)) {
