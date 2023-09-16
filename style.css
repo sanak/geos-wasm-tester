@@ -67,6 +67,10 @@ option.binary {
 #selOperation {
   width: 100%;
 }
+.method #lblMethod {
+  color: blue;
+  font-size: 1.1em;
+}
 .args {
   flex: 1;
 }

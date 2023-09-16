@@ -583,24 +583,29 @@ export default function Tester (engine) {
     txtArg.disabled = disabled
   }
 
-  this.updateOperation = (opname, arg1, arg2, arg3, arg4, arg5, arg6) => {
+  this.updateOperation = (opname, arg1, arg2, arg3, arg4, arg5, arg6, arg7) => {
     const selOperation = document.getElementById('selOperation')
+    let fncName = selOperation.value
     if (selOperation.selectedIndex >= 0 &&
         selOperation.selectedOptions[0].text.toLowerCase() !== opname.toLowerCase()) {
       const optsOperation = selOperation.options
       for (let i = 0; i < optsOperation.length; i++) {
         if (optsOperation[i].text.toLowerCase() === opname.toLowerCase()) {
           optsOperation[i].selected = true
+          fncName = optsOperation[i].value
           break
         }
       }
     }
+    const lblMethod = document.getElementById('lblMethod')
+    lblMethod.textContent = fncName
     setArgument(1, 'Geometry', 'A', true, true)
     setArgument(2, '', '', false, true)
     setArgument(3, '', '', false, true)
     setArgument(4, '', '', false, true)
     setArgument(5, '', '', false, true)
     setArgument(6, '', '', false, true)
+    setArgument(7, '', '', false, true)
     switch (opname.toLowerCase()) {
       // simple unary
       case 'clone':
@@ -669,11 +674,26 @@ export default function Tester (engine) {
         setArgument(5, 'Join Style', '1', true, false)
         setArgument(6, 'Mitre Limit', '10', true, false)
         break
+      case 'bufferwithparams':
+        setArgument(2, 'Width', '10', true, false)
+        setArgument(3, 'Quadrant Segs', '8', true, false)
+        setArgument(4, 'End Cap Style', '1', true, false)
+        setArgument(5, 'Join Style', '1', true, false)
+        setArgument(6, 'Mitre Limit', '10', true, false)
+        setArgument(7, 'Single Sided', '0', true, false)
+        break
       case 'offsetcurve':
         setArgument(2, 'Width', '10', true, false)
         setArgument(3, 'Quadrant Segs', '8', true, false)
         setArgument(4, 'Join Style', '1', true, false)
         setArgument(5, 'Mitre Limit', '10', true, false)
+        break
+      case 'singlesidedbuffer':
+        setArgument(2, 'Width', '10', true, false)
+        setArgument(3, 'Quadrant Segs', '8', true, false)
+        setArgument(4, 'Join Style', '1', true, false)
+        setArgument(5, 'Mitre Limit', '10', true, false)
+        setArgument(6, 'Left Side', '0', true, false)
         break
       case 'concavehull':
         setArgument(2, 'Ratio', '0', true, false)
@@ -736,6 +756,9 @@ export default function Tester (engine) {
     }
     if (!isEmpty(arg6)) {
       document.getElementById('txtArg6').value = arg6
+    }
+    if (!isEmpty(arg7)) {
+      document.getElementById('txtArg7').value = arg7
     }
     return true
   }
@@ -1058,6 +1081,79 @@ export default function Tester (engine) {
           loadOutput(result, expected)
         }
         break
+      case 'bufferwithparams':
+        {
+          let width = document.getElementById('txtArg2').value
+          if (isNaN(width)) {
+            alert('Width value must be number.')
+            return
+          }
+          width = parseFloat(width)
+
+          let quadsegs = document.getElementById('txtArg3').value
+          if (isNaN(quadsegs)) {
+            alert('Quadrant Segs value must be number.')
+            return
+          }
+          quadsegs = parseInt(quadsegs)
+
+          let endCapStyle = document.getElementById('txtArg4').value
+          if (isNaN(endCapStyle)) {
+            alert('End Cap Style value must be number (1-3).')
+            return
+          }
+          endCapStyle = parseInt(endCapStyle)
+          if (endCapStyle < 1 || endCapStyle > 3) {
+            alert('End Cap Style value must be 1-3.')
+            return
+          }
+
+          let joinStyle = document.getElementById('txtArg5').value
+          if (isNaN(joinStyle)) {
+            alert('Join Style value must be number (1-3).')
+            return
+          }
+          joinStyle = parseInt(joinStyle)
+          if (joinStyle < 1 || joinStyle > 3) {
+            alert('Join Style value must be 1-3.')
+            return
+          }
+
+          let mitreLimit = document.getElementById('txtArg6').value
+          if (isNaN(mitreLimit)) {
+            alert('Mitre Limit value must be number.')
+            return
+          }
+          mitreLimit = parseFloat(mitreLimit)
+
+          let isSingleSided = document.getElementById('txtArg7').value
+          if (isNaN(isSingleSided)) {
+            alert('Single Sided value must be number.')
+            return
+          }
+          isSingleSided = parseInt(isSingleSided)
+          if (isSingleSided < 0 || isSingleSided > 1) {
+            alert('Single Sided value must be 0/1.')
+            return
+          }
+          isSingleSided = parseFloat(isSingleSided)
+
+          const bufferParams = geos.GEOSBufferParams_create()
+          geos.GEOSBufferParams_setQuadrantSegments(bufferParams, quadsegs)
+          geos.GEOSBufferParams_setEndCapStyle(bufferParams, endCapStyle)
+          geos.GEOSBufferParams_setJoinStyle(bufferParams, joinStyle)
+          geos.GEOSBufferParams_setMitreLimit(bufferParams, mitreLimit)
+          geos.GEOSBufferParams_setSingleSided(bufferParams, isSingleSided)
+          geomResult = geos[fncname](geomA, bufferParams, width)
+          geos.GEOSFree(bufferParams)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
+        break
       case 'offsetcurve':
         {
           let width = document.getElementById('txtArg2').value
@@ -1093,6 +1189,60 @@ export default function Tester (engine) {
           mitreLimit = parseFloat(mitreLimit)
 
           geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
+        break
+      case 'singlesidedbuffer':
+        {
+          let width = document.getElementById('txtArg2').value
+          if (isNaN(width)) {
+            alert('Width value must be number.')
+            return
+          }
+          width = parseFloat(width)
+
+          let quadsegs = document.getElementById('txtArg3').value
+          if (isNaN(quadsegs)) {
+            alert('Quadrant Segs value must be number.')
+            return
+          }
+          quadsegs = parseInt(quadsegs)
+
+          let joinStyle = document.getElementById('txtArg4').value
+          if (isNaN(joinStyle)) {
+            alert('Join Style value must be number (1-3).')
+            return
+          }
+          joinStyle = parseInt(joinStyle)
+          if (joinStyle < 1 || joinStyle > 3) {
+            alert('Join Style value must be 1-3.')
+            return
+          }
+
+          let mitreLimit = document.getElementById('txtArg5').value
+          if (isNaN(mitreLimit)) {
+            alert('Mitre Limit value must be number.')
+            return
+          }
+          mitreLimit = parseFloat(mitreLimit)
+
+          let leftSide = document.getElementById('txtArg6').value
+          if (isNaN(leftSide)) {
+            alert('Left Side value must be number (0/1).')
+            return
+          }
+          leftSide = parseInt(leftSide)
+          if (leftSide < 0 || leftSide > 1) {
+            alert('End Cap Style value must be 0-1.')
+            return
+          }
+
+          geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit, leftSide)
           result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
             expected = geomToWkt(writer, geomFromWkt(reader, expected))
@@ -1372,10 +1522,11 @@ export default function Tester (engine) {
     let opname = nodeOp.getAttribute('name')
     const arg1 = nodeOp.getAttribute('arg1')
     const arg2 = nodeOp.getAttribute('arg2')
-    const arg3 = nodeOp.getAttribute('arg3')
-    const arg4 = nodeOp.getAttribute('arg4')
-    const arg5 = nodeOp.getAttribute('arg5')
-    const arg6 = nodeOp.getAttribute('arg6')
+    let arg3 = nodeOp.getAttribute('arg3')
+    let arg4 = nodeOp.getAttribute('arg4')
+    let arg5 = nodeOp.getAttribute('arg5')
+    let arg6 = nodeOp.getAttribute('arg6')
+    const arg7 = nodeOp.getAttribute('arg7')
     let expected = nodeOp.firstChild.data
     expected = expected.replace(/^\s+|\n|\s+$/g, '')
     if (isWkt(expected)) {
@@ -1396,6 +1547,13 @@ export default function Tester (engine) {
         break
       case 'getboundary':
         opname = 'boundary'
+        break
+      case 'buffersinglesided':
+        opname = 'singleSidedBuffer'
+        arg6 = (arg4.toLowerCase() === 'left') ? '1' : '0'
+        arg3 = ''
+        arg4 = '1'
+        arg5 = '2'
         break
       case 'getinteriorpoint':
         opname = 'pointOnSurface'
@@ -1427,12 +1585,11 @@ export default function Tester (engine) {
         opname = 'clipByRect'
         break
     }
-    // console.log(`a:\t${a}\nb:\t${b}\nopname:\t${opname}\narg1:\t${arg1}\narg2:\t${arg2}\narg3:\t${arg3}\narg4:\t${arg4}\narg5:\t${arg5}\narg6:\t${arg6}\nexp:\t${exp}`)
     self.loadInput(a, 'a')
     if (!isEmpty(b)) {
       self.loadInput(b, 'b')
     }
-    if (self.updateOperation(opname, arg1, arg2, arg3, arg4, arg5, arg6)) {
+    if (self.updateOperation(opname, arg1, arg2, arg3, arg4, arg5, arg6, arg7)) {
       self.compute(expected)
     }
   }

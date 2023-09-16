@@ -55,7 +55,7 @@
             )
             -->
           </label>
-          <select size="17" name="selOperation" id="selOperation" onchange="tester.updateOperation(this.selectedOptions[0].text)">
+          <select size="14" name="selOperation" id="selOperation" onchange="tester.updateOperation(this.selectedOptions[0].text)">
             <optgroup label="Geometry">
               <option value="GEOSGeom_clone" class="unary">clone</option>
               <option value="GEOSEnvelope" class="unary" selected="selected">envelope</option>
@@ -82,7 +82,9 @@
               <option value="GEOSBoundary" class="unary">boundary</option>
               <option value="GEOSBuffer" class="unary">buffer</option>
               <option value="GEOSBufferWithStyle" class="unary">bufferWithStyle</option>
+              <option value="GEOSBufferWithParams" class="unary">bufferWithParams</option>
               <option value="GEOSOffsetCurve" class="unary">offsetCurve</option>
+              <option value="GEOSSingleSidedBuffer" class="unary">singleSidedBuffer</option>
               <option value="GEOSGetCentroid" class="unary">getCentroid</option>
               <option value="GEOSConvexHull" class="unary">convexHull</option>
               <option value="GEOSConcaveHull" class="unary">concaveHull</option>
@@ -146,6 +148,9 @@
             -->
           </select>
         </div>
+        <div class="method">
+          <span id="lblMethod"></span>
+        </div>
         <div class="args">
           <div class="arg" id="divArg1">
             <label for="txtArg1" id="lblArg1">Geometry</label>
@@ -170,6 +175,10 @@
           <div class="arg" id="divArg6">
             <label for="txtArg6" id="lblArg6"></label>
             <input type="text" id="txtArg6" />
+          </div>
+          <div class="arg" id="divArg7">
+            <label for="txtArg7" id="lblArg7"></label>
+            <input type="text" id="txtArg7" />
           </div>
         </div>
         <div class="compute">
