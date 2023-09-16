@@ -669,6 +669,19 @@ export default function Tester (engine) {
         setArgument(4, 'Join Style', '1', true, false)
         setArgument(5, 'Mitre Limit', '10', true, false)
         break
+      case 'concavehull':
+        setArgument(2, 'Ratio', '0', true, false)
+        setArgument(3, 'Allow Holes', '1', true, false)
+        break
+      case 'concavehullbylength':
+        setArgument(2, 'Length', '0', true, false)
+        setArgument(3, 'Allow Holes', '1', true, false)
+        break
+      case 'concavehullofpolygons':
+        setArgument(2, 'Length Ratio', '0', true, false)
+        setArgument(3, 'isTight', '1', true, false)
+        setArgument(4, 'Allow Holes', '1', true, false)
+        break
       case 'densify':
       case 'maximuminscribedcircle':
       case 'simplify':
@@ -1057,6 +1070,64 @@ export default function Tester (engine) {
           mitreLimit = parseFloat(mitreLimit)
 
           geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
+        break
+      case 'concavehull':
+      case 'concavehullbylength':
+        {
+          let ratioOrLength = document.getElementById('txtArg2').value
+          if (isNaN(ratioOrLength)) {
+            alert('Ratio or Length value must be number.')
+            return
+          }
+          ratioOrLength = parseFloat(ratioOrLength)
+
+          let allowHoles = document.getElementById('txtArg3').value
+          if (isNaN(allowHoles)) {
+            alert('Allow Holes value must be number.')
+            return
+          }
+          allowHoles = parseInt(allowHoles)
+
+          geomResult = geos[fncname](geomA, ratioOrLength, allowHoles)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
+        break
+      case 'concavehullofpolygons':
+        {
+          let lengthRatio = document.getElementById('txtArg2').value
+          if (isNaN(lengthRatio)) {
+            alert('Length Ratio value must be number.')
+            return
+          }
+          lengthRatio = parseFloat(lengthRatio)
+
+          let isTight = document.getElementById('txtArg3').value
+          if (isNaN(isTight)) {
+            alert('Allow Holes value must be number.')
+            return
+          }
+          isTight = parseInt(isTight)
+
+          let allowHoles = document.getElementById('txtArg3').value
+          if (isNaN(allowHoles)) {
+            alert('Allow Holes value must be number.')
+            return
+          }
+          allowHoles = parseInt(allowHoles)
+
+          geomResult = geos[fncname](geomA, lengthRatio, isTight, allowHoles)
           result = geomToWkt(writer, geomResult)
           if (!isEmpty(expected)) {
             expected = geomToWkt(writer, geomFromWkt(reader, expected))
