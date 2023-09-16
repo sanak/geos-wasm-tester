@@ -9,7 +9,7 @@
   "general": [
     "TestBoundary.xml",
     "TestBuffer.xml",
-    "//--todo--/TestBufferMitredJoin.xml",
+    "TestBufferMitredJoin.xml",
     "TestCentroid.xml",
     "TestConvexHull-big.xml",
     "TestConvexHull.xml",

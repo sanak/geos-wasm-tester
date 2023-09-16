@@ -1548,6 +1548,10 @@ export default function Tester (engine) {
       case 'getboundary':
         opname = 'boundary'
         break
+      case 'buffermitredjoin':
+        opname = 'bufferWithParams'
+        arg5 = '2'
+        break
       case 'buffersinglesided':
         opname = 'singleSidedBuffer'
         arg6 = (arg4.toLowerCase() === 'left') ? '1' : '0'
