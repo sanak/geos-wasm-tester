@@ -1267,14 +1267,23 @@ export default function Tester (engine) {
     optDefault.selected = true
     optDefault.text = ' --- Select Below ---'
     selTestXml.appendChild(optDefault)
-    for (let i = 0; i < testXmlJson.length; i++) {
-      if (testXmlJson[i].startsWith('//')) {
+    for (const key of Object.keys(testXmlJson)) {
+      if (key.startsWith('//')) {
         continue
       }
-      const opt = document.createElement('option')
-      opt.text = testXmlJson[i]
-      opt.value = './tests/' + testXmlJson[i]
-      selTestXml.appendChild(opt)
+      const optGroup = document.createElement('optgroup')
+      optGroup.label = key
+      selTestXml.appendChild(optGroup)
+      const items = testXmlJson[key]
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].startsWith('//')) {
+          continue
+        }
+        const opt = document.createElement('option')
+        opt.text = items[i]
+        opt.value = `./tests/${key}/${items[i]}`
+        optGroup.appendChild(opt)
+      }
     }
   }
 
