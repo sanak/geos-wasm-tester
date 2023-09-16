@@ -735,6 +735,16 @@ export default function Tester (engine) {
       case 'interpolate':
         setArgument(2, 'Distance', '10', true, false)
         break
+      case 'differenceprec':
+      case 'intersectionprec':
+      case 'symdifferenceprec':
+      case 'unionprec':
+        setArgument(2, 'Geometry', 'B', true, true)
+        setArgument(3, 'Grid Size', '0.0', true, false)
+        break
+      case 'unaryunionprec':
+        setArgument(2, 'Grid Size', '0.0', true, false)
+        break
       default:
         alert('"' + opname + '" operation not supported.')
         return false
@@ -1429,6 +1439,51 @@ export default function Tester (engine) {
           loadOutput(result, expected)
         }
         break
+      case 'differenceprec':
+      case 'intersectionprec':
+      case 'symdifferenceprec':
+      case 'unionprec':
+        {
+          if (isEmpty(wktB)) {
+            alert('"' + opname + '" operation needs Geometry B.')
+            return
+          }
+          geomB = geomFromWkt(reader, wktB)
+
+          let gridSize = document.getElementById('txtArg3').value
+          if (isNaN(gridSize)) {
+            alert('Grid Size value must be number.')
+            return
+          }
+          gridSize = parseFloat(gridSize)
+
+          geomResult = geos[fncname](geomA, geomB, gridSize)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
+        break
+      case 'unaryunionprec':
+        {
+          let gridSize = document.getElementById('txtArg3').value
+          if (isNaN(gridSize)) {
+            alert('Grid Size value must be number.')
+            return
+          }
+          gridSize = parseFloat(gridSize)
+
+          geomResult = geos[fncname](geomA, gridSize)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
+        break
     }
   }
 
@@ -1584,6 +1639,29 @@ export default function Tester (engine) {
         if (arg2 !== 'B') {
           opname = 'unaryUnion'
         }
+        break
+      case 'differenceng':
+      case 'differencesr':
+        opname = 'differencePrec'
+        break
+      case 'intersectionng':
+      case 'intersectionsr':
+        opname = 'intersectionPrec'
+        break
+      case 'symdifferenceng':
+      case 'symdifferencesr':
+        opname = 'symDifferencePrec'
+        break
+      case 'unionng':
+      case 'unionsr':
+        opname = 'unionPrec'
+        if (arg2 !== 'B') {
+          opname = 'unaryUnionPrec'
+        }
+        break
+      case 'unaryunionng':
+      case 'unaryunionsr':
+        opname = 'unaryUnionPrec'
         break
       case 'cliprect':
         opname = 'clipByRect'
