@@ -183,5 +183,8 @@
     "TestRelatePA.xml",
     "TestRelatePL.xml",
     "TestRelatePP.xml"
+  ],
+  "jts": [
+    "general/TestPolygonize.xml"
   ]
 }

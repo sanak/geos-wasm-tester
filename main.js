@@ -624,6 +624,8 @@ export default function Tester (engine) {
       case 'delaunaytriangulation':
       case 'constraineddelaunaytriangulation':
       case 'voronoidiagram':
+      case 'polygonize':
+      case 'polygonizevalid':
       case 'buildarea':
       case 'unaryunion':
       case 'node':
@@ -827,6 +829,34 @@ export default function Tester (engine) {
         }
         updateOutput(result, expected, 'wkt')
         loadOutput(result, expected)
+        break
+      // simple unary (input geom array)
+      case 'polygonize':
+      case 'polygonizevalid':
+        {
+          const geoms = []
+          const geomType = geos.GEOSGeomTypeId(geomA)
+          if (geomType >= 4) {
+            const numGeoms = geos.GEOSGetNumGeometries(geomA)
+            for (let i = 0; i < numGeoms; i++) {
+              const geom = geos.GEOSGetGeometryN(geomA, i)
+              geoms.push(geom)
+            }
+          } else {
+            geoms.push(geomA)
+          }
+          const geomPtrs = new Int32Array(geoms)
+          const geomVecPtr = geos.Module._malloc(geomPtrs.length * geomPtrs.BYTES_PER_ELEMENT)
+          geos.Module.HEAP32.set(geomPtrs, geomVecPtr >> 2)
+          geomResult = geos[fncname](geomVecPtr, geoms.length)
+          geos.Module._free(geomVecPtr)
+          result = geomToWkt(writer, geomResult)
+          if (!isEmpty(expected)) {
+            expected = geomToWkt(writer, geomFromWkt(reader, expected))
+          }
+          updateOutput(result, expected, 'wkt')
+          loadOutput(result, expected)
+        }
         break
       // simple unary (return scalar (boolean))
       case 'hasz':
