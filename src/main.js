@@ -529,6 +529,11 @@ export default function Tester (engine) {
           expected = parseFloat(expected)
         }
         break
+      case 'wkt':
+        if (!isEmpty(expected)) {
+          expected = geomToWkt(writer, geomFromWkt(reader, expected))
+        }
+        break
     }
     txtResult.value = result
     txtExpected.value = expected
@@ -577,10 +582,56 @@ export default function Tester (engine) {
     const lblArg = document.getElementById('lblArg' + idx)
     const txtArg = document.getElementById('txtArg' + idx)
     divArg.style.display = visible ? 'flex' : 'none'
-    lblArg.textContent = label // FireFox
-    lblArg.innerText = label // IE
+    lblArg.innerText = label
     txtArg.value = value
     txtArg.disabled = disabled
+  }
+
+  const setArgumentValue = (idx, value) => {
+    if (!isEmpty(value)) {
+      const txtArg = document.getElementById('txtArg' + idx)
+      txtArg.value = value
+    }
+  }
+
+  const getGeometryArguments = (fncname, isBinary) => {
+    const wktA = document.getElementById('txtInputA').value
+    const wktB = document.getElementById('txtInputB').value
+    if (isEmpty(wktA)) {
+      throw new Error('all operation needs Geometry A.')
+    }
+
+    const geomA = geomFromWkt(reader, wktA)
+    if (isBinary) {
+      if (isEmpty(wktB)) {
+        throw new Error(`"${fncname}" operation needs Geometry B.`)
+      }
+      const geomB = geomFromWkt(reader, wktB)
+      return [geomA, geomB]
+    } else {
+      return [geomA]
+    }
+  }
+
+  const getArgumentValue = (idx, type, min, max) => {
+    let value = document.getElementById('txtArg' + idx).value
+    const label = document.getElementById('lblArg' + idx).innerText
+    if (type === 'int' || type === 'float') {
+      if (isNaN(value)) {
+        throw new Error(`${label} value must be number.`)
+      }
+      if (type === 'int') {
+        value = parseInt(value)
+      } else if (type === 'float') {
+        value = parseFloat(value)
+      }
+      if (!isEmpty(min) && !isEmpty(max)) {
+        if (value < min || value > max) {
+          throw new Error(`${label} value must be ${min}-${max}.`)
+        }
+      }
+    }
+    return value
   }
 
   this.updateOperation = (opname, arg1, arg2, arg3, arg4, arg5, arg6, arg7) => {
@@ -598,7 +649,7 @@ export default function Tester (engine) {
       }
     }
     const lblMethod = document.getElementById('lblMethod')
-    lblMethod.textContent = fncName
+    lblMethod.innerText = fncName
     setArgument(1, 'Geometry', 'A', true, true)
     setArgument(2, '', '', false, true)
     setArgument(3, '', '', false, true)
@@ -751,27 +802,13 @@ export default function Tester (engine) {
         alert('"' + opname + '" operation not supported.')
         return false
     }
-    if (!isEmpty(arg1)) {
-      document.getElementById('txtArg1').value = arg1
-    }
-    if (!isEmpty(arg2)) {
-      document.getElementById('txtArg2').value = arg2
-    }
-    if (!isEmpty(arg3)) {
-      document.getElementById('txtArg3').value = arg3
-    }
-    if (!isEmpty(arg4)) {
-      document.getElementById('txtArg4').value = arg4
-    }
-    if (!isEmpty(arg5)) {
-      document.getElementById('txtArg5').value = arg5
-    }
-    if (!isEmpty(arg6)) {
-      document.getElementById('txtArg6').value = arg6
-    }
-    if (!isEmpty(arg7)) {
-      document.getElementById('txtArg7').value = arg7
-    }
+    setArgumentValue(1, arg1)
+    setArgumentValue(2, arg2)
+    setArgumentValue(3, arg3)
+    setArgumentValue(4, arg4)
+    setArgumentValue(5, arg5)
+    setArgumentValue(6, arg6)
+    setArgumentValue(7, arg7)
     return true
   }
 
@@ -787,20 +824,11 @@ export default function Tester (engine) {
       setOutputType('result')
     }
 
-    const wktA = document.getElementById('txtInputA').value
-    const wktB = document.getElementById('txtInputB').value
     const opts = document.getElementById('selOperation').options
     const opname = opts[opts.selectedIndex].text
     const fncname = opts[opts.selectedIndex].value
 
-    if (isEmpty(wktA)) {
-      alert('all operation needs Geometry A.')
-      return
-    }
-    let geomB, geomResult, result
-
-    const geomA = geomFromWkt(reader, wktA)
-
+    let geomA, geomB, geomResult, result
     switch (opname.toLowerCase()) {
       // simple unary (return geometry)
       case 'clone':
@@ -822,11 +850,9 @@ export default function Tester (engine) {
       case 'unaryunion':
       case 'node':
       case 'coverageunion':
+        [geomA] = getGeometryArguments(fncname, false)
         geomResult = geos[fncname](geomA)
         result = geomToWkt(writer, geomResult)
-        if (!isEmpty(expected)) {
-          expected = geomToWkt(writer, geomFromWkt(reader, expected))
-        }
         updateOutput(result, expected, 'wkt')
         loadOutput(result, expected)
         break
@@ -834,6 +860,7 @@ export default function Tester (engine) {
       case 'polygonize':
       case 'polygonizevalid':
         {
+          [geomA] = getGeometryArguments(fncname, false)
           const geoms = []
           const geomType = geos.GEOSGeomTypeId(geomA)
           if (geomType >= 4) {
@@ -851,9 +878,6 @@ export default function Tester (engine) {
           geomResult = geos[fncname](geomVecPtr, geoms.length)
           geos.Module._free(geomVecPtr)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
@@ -863,6 +887,7 @@ export default function Tester (engine) {
       case 'isempty':
       case 'issimple':
       case 'isvalid':
+        [geomA] = getGeometryArguments(fncname, false)
         result = geos[fncname](geomA)
         updateOutput(result, expected, 'boolean')
         break
@@ -870,6 +895,7 @@ export default function Tester (engine) {
       case 'area':
       case 'length':
         {
+          [geomA] = getGeometryArguments(fncname, false)
           const valuePtr = geos.Module._malloc(8)
           geos[fncname](geomA, valuePtr)
           const value = geos.Module.getValue(valuePtr, 'double')
@@ -881,6 +907,7 @@ export default function Tester (engine) {
       // in-place unary (return scalar (int))
       case 'normalize':
         {
+          [geomA] = getGeometryArguments(fncname, false)
           const ret = geos[fncname](geomA)
           if (ret === 0) {
             result = geomToWkt(writer, geomA)
@@ -894,13 +921,8 @@ export default function Tester (engine) {
       // simple unary (return scalar (int))
       case 'minimumclearance':
         {
-          let distance = document.getElementById('txtArg2').value
-          if (isNaN(distance)) {
-            alert('Distance value must be number.')
-            return
-          }
-          distance = parseFloat(distance)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const distance = getArgumentValue(2, 'float')
           geomResult = geos[fncname](geomA, distance)
           updateOutput(result, expected, 'int')
           loadOutput(result, expected)
@@ -912,16 +934,9 @@ export default function Tester (engine) {
       case 'symdifference':
       case 'union':
       case 'clipbyrect':
-        if (isEmpty(wktB)) {
-          alert('"' + opname + '" operation needs Geometry B.')
-          return
-        }
-        geomB = geomFromWkt(reader, wktB)
+        [geomA, geomB] = getGeometryArguments(fncname, true)
         geomResult = geos[fncname](geomA, geomB)
         result = geomToWkt(writer, geomResult)
-        if (!isEmpty(expected)) {
-          expected = geomToWkt(writer, geomFromWkt(reader, expected))
-        }
         updateOutput(result, expected, 'wkt')
         loadOutput(result, expected)
         break
@@ -929,17 +944,10 @@ export default function Tester (engine) {
       case 'nearestpoints':
         {
           // TODO: fix geos-wasm return type
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
+          [geomA, geomB] = getGeometryArguments(fncname, true)
           const coordSeq = geos[fncname](geomA, geomB)
           geomResult = geos.GEOSGeom_createLineString(coordSeq)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
@@ -956,11 +964,7 @@ export default function Tester (engine) {
       case 'touches':
       case 'within':
       case 'project':
-        if (isEmpty(wktB)) {
-          alert('"' + opname + '" operation needs Geometry B.')
-          return
-        }
-        geomB = geomFromWkt(reader, wktB)
+        [geomA, geomB] = getGeometryArguments(fncname, true)
         result = geos[fncname](geomA, geomB)
         updateOutput(result, expected, 'boolean')
         break
@@ -969,11 +973,7 @@ export default function Tester (engine) {
       case 'frechetdistance':
       case 'hausdorffdistance':
         {
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
+          [geomA, geomB] = getGeometryArguments(fncname, true)
           const valuePtr = geos.Module._malloc(8)
           result = geos[fncname](geomA, geomB, valuePtr)
           const value = geos.Module.getValue(valuePtr, 'double')
@@ -984,200 +984,64 @@ export default function Tester (engine) {
         break
       // simple binary (return scalar (string))
       case 'relate':
-        if (isEmpty(wktB)) {
-          alert('"' + opname + '" operation needs Geometry B.')
-          return
-        }
-        geomB = geomFromWkt(reader, wktB)
-
+        [geomA, geomB] = getGeometryArguments(fncname, true)
         result = geos[fncname](geomA, geomB)
         updateOutput(result, expected, 'string')
         break
       // has arguments
       case 'distancewithin':
         {
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
-
-          let distance = document.getElementById('txtArg3').value
-          if (isNaN(distance)) {
-            alert('Distance value must be number.')
-            return
-          }
-          distance = parseFloat(distance)
-
+          [geomA, geomB] = getGeometryArguments(fncname, true)
+          const distance = getArgumentValue(3, 'float')
           result = geos[fncname](geomA, geomB, distance)
           updateOutput(result, expected, 'boolean')
         }
         break
       case 'setprecision':
         {
-          let precision = document.getElementById('txtArg2').value
-          if (isNaN(precision)) {
-            alert('Precision value must be number.')
-            return
-          }
-          precision = parseFloat(precision)
-
-          let flags = document.getElementById('txtArg3').value
-          if (isNaN(flags)) {
-            flags = 0
-          } else {
-            flags = parseInt(flags)
-            if (flags < 0 || flags > 2) {
-              alert('Flags value must be 0-2.')
-              return
-            }
-          }
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const precision = getArgumentValue(2, 'float')
+          const flags = getArgumentValue(3, 'int', 0, 2)
           geomResult = geos[fncname](geomA, precision, flags)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'buffer':
         {
-          let width = document.getElementById('txtArg2').value
-          if (isNaN(width)) {
-            alert('Width value must be number.')
-            return
-          }
-          width = parseFloat(width)
-
-          let quadsegs = document.getElementById('txtArg3').value
-          if (isNaN(quadsegs)) {
-            alert('Quadrant Segs value must be number.')
-            return
-          }
-          quadsegs = parseInt(quadsegs)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const width = getArgumentValue(2, 'float')
+          const quadsegs = getArgumentValue(3, 'int')
           geomResult = geos[fncname](geomA, width, quadsegs)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'bufferwithstyle':
         {
-          let width = document.getElementById('txtArg2').value
-          if (isNaN(width)) {
-            alert('Width value must be number.')
-            return
-          }
-          width = parseFloat(width)
-
-          let quadsegs = document.getElementById('txtArg3').value
-          if (isNaN(quadsegs)) {
-            alert('Quadrant Segs value must be number.')
-            return
-          }
-          quadsegs = parseInt(quadsegs)
-
-          let endCapStyle = document.getElementById('txtArg4').value
-          if (isNaN(endCapStyle)) {
-            alert('End Cap Style value must be number (1-3).')
-            return
-          }
-          endCapStyle = parseInt(endCapStyle)
-          if (endCapStyle < 1 || endCapStyle > 3) {
-            alert('End Cap Style value must be 1-3.')
-            return
-          }
-
-          let joinStyle = document.getElementById('txtArg5').value
-          if (isNaN(joinStyle)) {
-            alert('Join Style value must be number (1-3).')
-            return
-          }
-          joinStyle = parseInt(joinStyle)
-          if (joinStyle < 1 || joinStyle > 3) {
-            alert('Join Style value must be 1-3.')
-            return
-          }
-
-          let mitreLimit = document.getElementById('txtArg6').value
-          if (isNaN(mitreLimit)) {
-            alert('Mitre Limit value must be number.')
-            return
-          }
-          mitreLimit = parseFloat(mitreLimit)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const width = getArgumentValue(2, 'float')
+          const quadsegs = getArgumentValue(3, 'int')
+          const endCapStyle = getArgumentValue(4, 'int', 1, 3)
+          const joinStyle = getArgumentValue(5, 'int', 1, 3)
+          const mitreLimit = getArgumentValue(6, 'float')
           geomResult = geos[fncname](geomA, width, quadsegs, endCapStyle, joinStyle, mitreLimit)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'bufferwithparams':
         {
-          let width = document.getElementById('txtArg2').value
-          if (isNaN(width)) {
-            alert('Width value must be number.')
-            return
-          }
-          width = parseFloat(width)
-
-          let quadsegs = document.getElementById('txtArg3').value
-          if (isNaN(quadsegs)) {
-            alert('Quadrant Segs value must be number.')
-            return
-          }
-          quadsegs = parseInt(quadsegs)
-
-          let endCapStyle = document.getElementById('txtArg4').value
-          if (isNaN(endCapStyle)) {
-            alert('End Cap Style value must be number (1-3).')
-            return
-          }
-          endCapStyle = parseInt(endCapStyle)
-          if (endCapStyle < 1 || endCapStyle > 3) {
-            alert('End Cap Style value must be 1-3.')
-            return
-          }
-
-          let joinStyle = document.getElementById('txtArg5').value
-          if (isNaN(joinStyle)) {
-            alert('Join Style value must be number (1-3).')
-            return
-          }
-          joinStyle = parseInt(joinStyle)
-          if (joinStyle < 1 || joinStyle > 3) {
-            alert('Join Style value must be 1-3.')
-            return
-          }
-
-          let mitreLimit = document.getElementById('txtArg6').value
-          if (isNaN(mitreLimit)) {
-            alert('Mitre Limit value must be number.')
-            return
-          }
-          mitreLimit = parseFloat(mitreLimit)
-
-          let isSingleSided = document.getElementById('txtArg7').value
-          if (isNaN(isSingleSided)) {
-            alert('Single Sided value must be number.')
-            return
-          }
-          isSingleSided = parseInt(isSingleSided)
-          if (isSingleSided < 0 || isSingleSided > 1) {
-            alert('Single Sided value must be 0/1.')
-            return
-          }
-          isSingleSided = parseFloat(isSingleSided)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const width = getArgumentValue(2, 'float')
+          const quadsegs = getArgumentValue(3, 'int')
+          const endCapStyle = getArgumentValue(4, 'int', 1, 3)
+          const joinStyle = getArgumentValue(5, 'int', 1, 3)
+          const mitreLimit = getArgumentValue(6, 'float')
+          const isSingleSided = getArgumentValue(7, 'int', 0, 1)
           const bufferParams = geos.GEOSBufferParams_create()
           geos.GEOSBufferParams_setQuadrantSegments(bufferParams, quadsegs)
           geos.GEOSBufferParams_setEndCapStyle(bufferParams, endCapStyle)
@@ -1187,106 +1051,33 @@ export default function Tester (engine) {
           geomResult = geos[fncname](geomA, bufferParams, width)
           geos.GEOSFree(bufferParams)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'offsetcurve':
         {
-          let width = document.getElementById('txtArg2').value
-          if (isNaN(width)) {
-            alert('Width value must be number.')
-            return
-          }
-          width = parseFloat(width)
-
-          let quadsegs = document.getElementById('txtArg3').value
-          if (isNaN(quadsegs)) {
-            alert('Quadrant Segs value must be number.')
-            return
-          }
-          quadsegs = parseInt(quadsegs)
-
-          let joinStyle = document.getElementById('txtArg4').value
-          if (isNaN(joinStyle)) {
-            alert('Join Style value must be number (1-3).')
-            return
-          }
-          joinStyle = parseInt(joinStyle)
-          if (joinStyle < 1 || joinStyle > 3) {
-            alert('Join Style value must be 1-3.')
-            return
-          }
-
-          let mitreLimit = document.getElementById('txtArg5').value
-          if (isNaN(mitreLimit)) {
-            alert('Mitre Limit value must be number.')
-            return
-          }
-          mitreLimit = parseFloat(mitreLimit)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const width = getArgumentValue(2, 'float')
+          const quadsegs = getArgumentValue(3, 'int')
+          const joinStyle = getArgumentValue(4, 'int', 1, 3)
+          const mitreLimit = getArgumentValue(5, 'float')
           geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'singlesidedbuffer':
         {
-          let width = document.getElementById('txtArg2').value
-          if (isNaN(width)) {
-            alert('Width value must be number.')
-            return
-          }
-          width = parseFloat(width)
-
-          let quadsegs = document.getElementById('txtArg3').value
-          if (isNaN(quadsegs)) {
-            alert('Quadrant Segs value must be number.')
-            return
-          }
-          quadsegs = parseInt(quadsegs)
-
-          let joinStyle = document.getElementById('txtArg4').value
-          if (isNaN(joinStyle)) {
-            alert('Join Style value must be number (1-3).')
-            return
-          }
-          joinStyle = parseInt(joinStyle)
-          if (joinStyle < 1 || joinStyle > 3) {
-            alert('Join Style value must be 1-3.')
-            return
-          }
-
-          let mitreLimit = document.getElementById('txtArg5').value
-          if (isNaN(mitreLimit)) {
-            alert('Mitre Limit value must be number.')
-            return
-          }
-          mitreLimit = parseFloat(mitreLimit)
-
-          let leftSide = document.getElementById('txtArg6').value
-          if (isNaN(leftSide)) {
-            alert('Left Side value must be number (0/1).')
-            return
-          }
-          leftSide = parseInt(leftSide)
-          if (leftSide < 0 || leftSide > 1) {
-            alert('End Cap Style value must be 0-1.')
-            return
-          }
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const width = getArgumentValue(2, 'float')
+          const quadsegs = getArgumentValue(3, 'int')
+          const joinStyle = getArgumentValue(4, 'int', 1, 3)
+          const mitreLimit = getArgumentValue(5, 'float')
+          const leftSide = getArgumentValue(6, 'int', 0, 1)
           geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit, leftSide)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
@@ -1294,57 +1085,23 @@ export default function Tester (engine) {
       case 'concavehull':
       case 'concavehullbylength':
         {
-          let ratioOrLength = document.getElementById('txtArg2').value
-          if (isNaN(ratioOrLength)) {
-            alert('Ratio or Length value must be number.')
-            return
-          }
-          ratioOrLength = parseFloat(ratioOrLength)
-
-          let allowHoles = document.getElementById('txtArg3').value
-          if (isNaN(allowHoles)) {
-            alert('Allow Holes value must be number.')
-            return
-          }
-          allowHoles = parseInt(allowHoles)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const ratioOrLength = getArgumentValue(2, 'float')
+          const allowHoles = getArgumentValue(3, 'int', 0, 1)
           geomResult = geos[fncname](geomA, ratioOrLength, allowHoles)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'concavehullofpolygons':
         {
-          let lengthRatio = document.getElementById('txtArg2').value
-          if (isNaN(lengthRatio)) {
-            alert('Length Ratio value must be number.')
-            return
-          }
-          lengthRatio = parseFloat(lengthRatio)
-
-          let isTight = document.getElementById('txtArg3').value
-          if (isNaN(isTight)) {
-            alert('Allow Holes value must be number.')
-            return
-          }
-          isTight = parseInt(isTight)
-
-          let allowHoles = document.getElementById('txtArg3').value
-          if (isNaN(allowHoles)) {
-            alert('Allow Holes value must be number.')
-            return
-          }
-          allowHoles = parseInt(allowHoles)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const lengthRatio = getArgumentValue(2, 'float')
+          const isTight = getArgumentValue(3, 'int', 0, 1)
+          const allowHoles = getArgumentValue(4, 'int', 0, 1)
           geomResult = geos[fncname](geomA, lengthRatio, isTight, allowHoles)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
@@ -1354,117 +1111,54 @@ export default function Tester (engine) {
       case 'simplify':
       case 'topologypreservesimplify':
         {
-          let tolerance = document.getElementById('txtArg2').value
-          if (isNaN(tolerance)) {
-            alert('Tolerance value must be number.')
-            return
-          }
-          tolerance = parseFloat(tolerance)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const tolerance = getArgumentValue(2, 'float')
           geomResult = geos[fncname](geomA, tolerance)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'largestemptycircle':
         {
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
-
-          let tolerance = document.getElementById('txtArg3').value
-          if (isNaN(tolerance)) {
-            alert('Tolerance value must be number.')
-            return
-          }
-          tolerance = parseFloat(tolerance)
-
+          [geomA, geomB] = getGeometryArguments(fncname, true)
+          const tolerance = getArgumentValue(3, 'float')
           geomResult = geos[fncname](geomA, geomB, tolerance)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'equalsexact':
         {
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
-
-          let tolerance = document.getElementById('txtArg3').value
-          if (isNaN(tolerance)) {
-            alert('Tolerance value must be number.')
-            return
-          }
-          tolerance = parseFloat(tolerance)
-
+          [geomA, geomB] = getGeometryArguments(fncname, true)
+          const tolerance = getArgumentValue(3, 'float')
           result = geos[fncname](geomA, geomB, tolerance)
           updateOutput(result, expected, 'boolean')
         }
         break
       case 'relatepattern':
         {
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
-
-          const pattern = document.getElementById('txtArg3').value
-
+          [geomA, geomB] = getGeometryArguments(fncname, true)
+          const pattern = getArgumentValue(3, 'string')
           result = geos[fncname](geomA, geomB, pattern)
           updateOutput(result, expected, 'boolean')
         }
         break
       case 'relateboundarynoderule':
         {
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
-
-          let bnr = document.getElementById('txtArg3').value
-          if (isNaN(bnr)) {
-            alert('Boundary Node Rule value must be number (1-4).')
-            return
-          } else {
-            bnr = parseInt(bnr)
-            if (bnr < 1 || bnr > 4) {
-              alert('Boundary Node Rule value must be number (1-4).')
-              return
-            }
-          }
-
+          [geomA, geomB] = getGeometryArguments(fncname, true)
+          const bnr = getArgumentValue(3, 'int', 1, 4)
           result = geos[fncname](geomA, geomB, bnr)
           updateOutput(result, expected, 'string')
         }
         break
       case 'interpolate':
         {
-          let distance = document.getElementById('txtArg2').value
-          if (isNaN(distance)) {
-            alert('Distance value must be number.')
-            return
-          }
-          distance = parseFloat(distance)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const distance = getArgumentValue(2, 'float')
           geomResult = geos[fncname](geomA, distance)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
@@ -1474,42 +1168,20 @@ export default function Tester (engine) {
       case 'symdifferenceprec':
       case 'unionprec':
         {
-          if (isEmpty(wktB)) {
-            alert('"' + opname + '" operation needs Geometry B.')
-            return
-          }
-          geomB = geomFromWkt(reader, wktB)
-
-          let gridSize = document.getElementById('txtArg3').value
-          if (isNaN(gridSize)) {
-            alert('Grid Size value must be number.')
-            return
-          }
-          gridSize = parseFloat(gridSize)
-
+          [geomA, geomB] = getGeometryArguments(fncname, true)
+          const gridSize = getArgumentValue(3, 'float')
           geomResult = geos[fncname](geomA, geomB, gridSize)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
         break
       case 'unaryunionprec':
         {
-          let gridSize = document.getElementById('txtArg3').value
-          if (isNaN(gridSize)) {
-            alert('Grid Size value must be number.')
-            return
-          }
-          gridSize = parseFloat(gridSize)
-
+          [geomA] = getGeometryArguments(fncname, false)
+          const gridSize = getArgumentValue(3, 'float')
           geomResult = geos[fncname](geomA, gridSize)
           result = geomToWkt(writer, geomResult)
-          if (!isEmpty(expected)) {
-            expected = geomToWkt(writer, geomFromWkt(reader, expected))
-          }
           updateOutput(result, expected, 'wkt')
           loadOutput(result, expected)
         }
