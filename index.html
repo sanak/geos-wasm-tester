@@ -11,16 +11,7 @@
     <link rel="stylesheet" href="style.css" type="text/css">
     <script src="/lib/ol2/OpenLayers.js"></script>
     <script src="/lib/ol2/EditingToolbarExt.js"></script>
-    <script type="module">
-      import Tester from "./src/main.js"
-      window.onload = () => {
-        const tester = new Tester(OpenLayers)
-        window.tester = tester
-        tester.init()
-        const path = location.href.replace('index.html', '')
-        tester.addTestXmls(`${path}/tests/testxml.json`)
-      }
-    </script>
+    <script src="src/main.js" type="module"></script>
   </head>
   <body>
     <h1 id="title">GEOS WASM Tester</h1>
@@ -34,11 +25,11 @@
         <div>
           <label for="selTestXml">TestXml</label>
           <select name="selTestXml" id="selTestXml"></select>
-          <input type="button" id="btnLoad" value="Load" onclick="tester.loadTestXml()"/>
+          <input type="button" id="btnLoadTestXml" value="Load"/>
         </div>
         <div>
           <label for="selTestCase">TestCase</label>
-          <select name="selTestCase" id="selTestCase" onchange="tester.loadTestCase()">
+          <select name="selTestCase" id="selTestCase">
             <option selected="selected">---&nbsp;Select Below&nbsp;---</option>
           </select>
         </div>
@@ -55,7 +46,7 @@
             )
             -->
           </label>
-          <select size="14" name="selOperation" id="selOperation" onchange="tester.updateOperation(this.selectedOptions[0].text)">
+          <select size="14" name="selOperation" id="selOperation">
             <optgroup label="Geometry">
               <option value="GEOSGeom_clone" class="unary">clone</option>
               <option value="GEOSEnvelope" class="unary" selected="selected">envelope</option>
@@ -187,24 +178,21 @@
           </div>
         </div>
         <div class="compute">
-          <input type="button" id="btnCompute" value="Compute"
-            onclick="tester.compute()" />
+          <input type="button" id="btnCompute" value="Compute" />
         </div>
       </div>
       <div class="right">
         <div id="map"></div>
         <div class="map-status">
           <div>
-            <input type="checkbox" id="chkDisplay" name="chkDisplay" checked="checked"
-              onclick="tester.displayInputGeometries(this.checked)"
-            />
+            <input type="checkbox" id="chkDisplayInput" checked="checked" />
             <img src="./assets/images/testbuilder/BinaryGeomFunction.png" title="Display Input Geometries"/>
           </div>
           <div class="vertical-separator"></div>
           <div class="pm">
             <div>
               <label for="selPrecisionModel">PM</label>
-              <select name="selPrecisionModel" id="selPrecisionModel" onchange="tester.switchFixedScale(this.value)">
+              <select name="selPrecisionModel" id="selPrecisionModel">
                 <option value="FLOATING" selected="selected">Floating</option>
                 <option value="FLOATING_SINGLE">Floating-Single</option>
                 <option value="FIXED">Fixed</option>
@@ -221,15 +209,11 @@
         <div class="io">
           <div class="iolabel">
             <div>
-              <input type="radio" name="inputtype" id="radA" value="a" checked="checked"
-                onclick="tester.switchInput(this.value)"
-              />
+              <input type="radio" name="inputtype" id="radA" value="a" checked="checked" />
               <label for="radA" id="lblA">A</label>
             </div>
             <div>
-              <input type="radio" name="inputtype" id="radB" value="b"
-                onclick="tester.switchInput(this.value)"
-              />
+              <input type="radio" name="inputtype" id="radB" value="b" />
               <label for="radB" id="lblB">B</label>
             </div>
           </div>
@@ -239,29 +223,21 @@
           </div>
           <div class="iobutton">
             <div>
-              <input type="button" id="btnClearInput" value="Clear"
-                onclick="tester.clearInput()"
-              />
+              <input type="button" id="btnClearInput" value="Clear" />
             </div>
             <div>
-              <input type="button" id="btnLoadInput" value="Load"
-                onclick="tester.loadInput()"
-              />
+              <input type="button" id="btnLoadInput" value="Load" />
             </div>
           </div>
         </div>
         <div class="io">
           <div class="iolabel">
             <div>
-              <input type="radio" name="outputtype" id="radResult" value="result" checked="checked"
-                onclick="tester.switchOutput(this.value)"
-              />
+              <input type="radio" name="outputtype" id="radResult" value="result" checked="checked" />
               <label for="radResult" id="lblResult">Result</label>
             </div>
             <div>
-              <input type="radio" name="outputtype" id="radExpected" value="expected"
-                onclick="tester.switchOutput(this.value)"
-              />
+              <input type="radio" name="outputtype" id="radExpected" value="expected" />
               <label for="radExpected" id="lblExpected">Expected</label>
             </div>
           </div>
@@ -271,9 +247,7 @@
           </div>
           <div class="iobutton">
             <div>
-              <input type="button" id="btnClearOutput" value="Clear"
-                onclick="tester.clearOutput()"
-              />
+              <input type="button" id="btnClearOutput" value="Clear" />
             </div>
           </div>
         </div>
