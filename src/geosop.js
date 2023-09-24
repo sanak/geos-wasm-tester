@@ -31,7 +31,7 @@ export default function GeosOp (context) {
     }
   }
 
-  this.geomFromWkt = (wkt) => {
+  const geomFromWkt = (wkt) => {
     if (isEmpty(wkt)) {
       return 0
     }
@@ -45,8 +45,9 @@ export default function GeosOp (context) {
     const geom = geos.GEOSWKTReader_read(reader, wkt)
 
     if (document.getElementById('selPrecisionModel').value === 'FIXED') {
-      const scale = document.getElementById('txtFixedScale').value
+      let scale = document.getElementById('txtFixedScale').value
       if (!isNaN(scale)) {
+        scale = parseFloat(scale)
         const fixedGeom = geos.GEOSGeom_setPrecision(geom, scale, 0)
         geos.GEOSGeom_destroy(geom)
         return fixedGeom
@@ -75,12 +76,12 @@ export default function GeosOp (context) {
       throw new Error('all operation needs Geometry A.')
     }
 
-    const geomA = self.geomFromWkt(wktA)
+    const geomA = geomFromWkt(wktA)
     if (isBinary) {
       if (isEmpty(wktB)) {
         throw new Error(`"${fncname}" operation needs Geometry B.`)
       }
-      const geomB = self.geomFromWkt(wktB)
+      const geomB = geomFromWkt(wktB)
       return [geomA, geomB]
     } else {
       return [geomA]
@@ -138,7 +139,7 @@ export default function GeosOp (context) {
       case 'wkt':
         // TODO:
         // if (!isEmpty(expected)) {
-        //   expected = geomToWkt(writer, geomFromWkt(reader, expected))
+        //   expected = geomToWkt(geomFromWkt(expected))
         // }
         break
     }
@@ -202,7 +203,7 @@ export default function GeosOp (context) {
         case 'coverageunion':
           [geomA] = getGeometryArguments(fncname, false)
           geomResult = geos[fncname](geomA)
-          result = geomToWkt(writer, geomResult)
+          result = geomToWkt(geomResult)
           updateOutput(result, expected, 'wkt')
           break
         // simple unary (input geom array)
@@ -226,7 +227,7 @@ export default function GeosOp (context) {
             geos.Module.HEAP32.set(geomPtrs, geomVecPtr >> 2)
             geomResult = geos[fncname](geomVecPtr, geoms.length)
             geos.Module._free(geomVecPtr)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -258,7 +259,7 @@ export default function GeosOp (context) {
             [geomA] = getGeometryArguments(fncname, false)
             const ret = geos[fncname](geomA)
             if (ret === 0) {
-              result = geomToWkt(writer, geomA)
+              result = geomToWkt(geomA)
               updateOutput(result, expected, 'wkt')
             } else if (ret === -1) {
               result = 'exception'
@@ -283,7 +284,7 @@ export default function GeosOp (context) {
         case 'clipbyrect':
           [geomA, geomB] = getGeometryArguments(fncname, true)
           geomResult = geos[fncname](geomA, geomB)
-          result = geomToWkt(writer, geomResult)
+          result = geomToWkt(geomResult)
           updateOutput(result, expected, 'wkt')
           break
         // simple binary (return coordseq)
@@ -293,7 +294,7 @@ export default function GeosOp (context) {
             [geomA, geomB] = getGeometryArguments(fncname, true)
             const coordSeq = geos[fncname](geomA, geomB)
             geomResult = geos.GEOSGeom_createLineString(coordSeq)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -348,7 +349,7 @@ export default function GeosOp (context) {
             const precision = getArgumentValue(2, 'float')
             const flags = getArgumentValue(3, 'int', 0, 2)
             geomResult = geos[fncname](geomA, precision, flags)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -358,7 +359,7 @@ export default function GeosOp (context) {
             const width = getArgumentValue(2, 'float')
             const quadsegs = getArgumentValue(3, 'int')
             geomResult = geos[fncname](geomA, width, quadsegs)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -371,7 +372,7 @@ export default function GeosOp (context) {
             const joinStyle = getArgumentValue(5, 'int', 1, 3)
             const mitreLimit = getArgumentValue(6, 'float')
             geomResult = geos[fncname](geomA, width, quadsegs, endCapStyle, joinStyle, mitreLimit)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -392,7 +393,7 @@ export default function GeosOp (context) {
             geos.GEOSBufferParams_setSingleSided(bufferParams, isSingleSided)
             geomResult = geos[fncname](geomA, bufferParams, width)
             geos.GEOSFree(bufferParams)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -404,7 +405,7 @@ export default function GeosOp (context) {
             const joinStyle = getArgumentValue(4, 'int', 1, 3)
             const mitreLimit = getArgumentValue(5, 'float')
             geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -417,7 +418,7 @@ export default function GeosOp (context) {
             const mitreLimit = getArgumentValue(5, 'float')
             const leftSide = getArgumentValue(6, 'int', 0, 1)
             geomResult = geos[fncname](geomA, width, quadsegs, joinStyle, mitreLimit, leftSide)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -428,7 +429,7 @@ export default function GeosOp (context) {
             const ratioOrLength = getArgumentValue(2, 'float')
             const allowHoles = getArgumentValue(3, 'int', 0, 1)
             geomResult = geos[fncname](geomA, ratioOrLength, allowHoles)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -439,7 +440,7 @@ export default function GeosOp (context) {
             const isTight = getArgumentValue(3, 'int', 0, 1)
             const allowHoles = getArgumentValue(4, 'int', 0, 1)
             geomResult = geos[fncname](geomA, lengthRatio, isTight, allowHoles)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -451,7 +452,7 @@ export default function GeosOp (context) {
             [geomA] = getGeometryArguments(fncname, false)
             const tolerance = getArgumentValue(2, 'float')
             geomResult = geos[fncname](geomA, tolerance)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -460,7 +461,7 @@ export default function GeosOp (context) {
             [geomA, geomB] = getGeometryArguments(fncname, true)
             const tolerance = getArgumentValue(3, 'float')
             geomResult = geos[fncname](geomA, geomB, tolerance)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -493,7 +494,7 @@ export default function GeosOp (context) {
             [geomA] = getGeometryArguments(fncname, false)
             const distance = getArgumentValue(2, 'float')
             geomResult = geos[fncname](geomA, distance)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -505,7 +506,7 @@ export default function GeosOp (context) {
             [geomA, geomB] = getGeometryArguments(fncname, true)
             const gridSize = getArgumentValue(3, 'float')
             geomResult = geos[fncname](geomA, geomB, gridSize)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
@@ -514,7 +515,7 @@ export default function GeosOp (context) {
             [geomA] = getGeometryArguments(fncname, false)
             const gridSize = getArgumentValue(3, 'float')
             geomResult = geos[fncname](geomA, gridSize)
-            result = geomToWkt(writer, geomResult)
+            result = geomToWkt(geomResult)
             updateOutput(result, expected, 'wkt')
           }
           break
