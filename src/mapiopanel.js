@@ -1,18 +1,32 @@
-import { isEmpty } from './util.js'
+// import ImageLayer from 'ol/layer/Image.js'
+import Map from 'ol/Map.js'
+import MousePosition from 'ol/control/MousePosition.js'
+import View from 'ol/View.js'
+import { WKT } from 'ol/format.js'
+import { OSM, Vector as VectorSource } from 'ol/source.js'
+// import Projection from 'ol/proj/Projection.js'
+// import Static from 'ol/source/ImageStatic.js'
+import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
+import { createStringXY } from 'ol/coordinate.js'
+import { defaults as defaultControls } from 'ol/control.js'
+// import { getCenter } from 'ol/extent.js'
+// import { isEmpty } from './util.js'
 
 export default function MapIoPanel (context) {
   const self = this
-  const OpenLayers = window.OpenLayers
 
   self.featureA = null
   self.featureB = null
 
-  let map, wktfmt, layerInput, layerOutput
+  let map
+  let formatWkt
+  let layerA, layerB, layerResult, layerExpected
   let featureResult, featureExpected
 
   this.init = () => {
     initMap()
 
+    /*
     const chkDisplayInput = document.getElementById('chkDisplayInput')
     chkDisplayInput.addEventListener('change', (e) => {
       displayInputGeometries(e.currentTarget.checked)
@@ -48,11 +62,13 @@ export default function MapIoPanel (context) {
     })
     // Switch default input
     switchInput('a')
+    */
 
     return self
   }
 
   const initMap = () => {
+    /*
     const options = {
       units: 'm',
       maxExtent: new OpenLayers.Bounds(
@@ -108,8 +124,80 @@ export default function MapIoPanel (context) {
     map.addControl(new OpenLayers.Control.EditingToolbarExt(layerInput))
 
     map.zoomToExtent(new OpenLayers.Bounds(-10, -10, 416, 416))
+    */
+    // const radius = 6378137
+    // const extent = [
+    //   -Math.PI * radius,
+    //   -Math.PI * radius,
+    //   Math.PI * radius,
+    //   Math.PI * radius
+    // ]
+    // const projection = new Projection({
+    //   code: 'EPSG:3857',
+    //   units: 'm',
+    //   extent: extent
+    // })
+    layerA = new VectorLayer({
+      source: new VectorSource({
+        features: []
+      })
+    })
+    layerB = new VectorLayer({
+      source: new VectorSource({
+        features: []
+      })
+    })
+    layerResult = new VectorLayer({
+      source: new VectorSource({
+        features: []
+      })
+    })
+    layerExpected = new VectorLayer({
+      source: new VectorSource({
+        features: []
+      })
+    })
+    map = new Map({
+      controls: defaultControls().extend([
+        new MousePosition({
+          coordinateFormat: createStringXY(4),
+          projection: 'EPSG:3857',
+          className: 'custom-mouse-position',
+          target: document.getElementById('divMousePosition')
+        })
+      ]),
+      layers: [
+        // new ImageLayer({
+        //   source: new Static({
+        //     url: '/images/blank.gif',
+        //     projection: projection,
+        //     imageExtent: extent
+        //   })
+        // }),
+        new TileLayer({
+          source: new OSM()
+        }),
+        layerA,
+        layerB,
+        layerResult,
+        layerExpected
+      ],
+      target: 'map',
+      view: new View({
+        // projection: projection,
+        // center: getCenter(extent),
+        projection: 'EPSG:3857',
+        center: [0, 0],
+        zoom: 1,
+        maxZoom: 22
+      })
+    })
+    self.map = map // For debug
+
+    formatWkt = new WKT()
   }
 
+  /*
   const onInputFeatureAdded = (event) => {
     const feature = event.feature
     const strtype = getInputType()
@@ -488,4 +576,5 @@ export default function MapIoPanel (context) {
     txtResult.style.backgroundColor = '#ffffff'
     txtExpected.style.backgroundColor = '#ffffff'
   }
+  */
 }

@@ -98,23 +98,29 @@ option.binary {
   max-height: 470px;
   border: 1px solid #ccc;
 }
-.map-status {
+.statusbar {
   height: 30px;
   display: flex;
   align-items: center;
 }
-.map-status > div {
-  margin-left: 1em;
+.statusbar > div.display {
+  flex: 1;
+  text-align: center;
 }
-.pm {
+.statusbar > div.pm {
+  flex: 2;
   display: flex;
   align-items: center;
 }
-.pm > div {
+.statusbar > div.pm > div {
   margin-left: 0.3em;
 }
 #txtFixedScale {
   width: 50px;
+  text-align: right;
+}
+#divMousePosition {
+  flex: 3;
   text-align: right;
 }
 

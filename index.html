@@ -5,12 +5,8 @@
     <link rel="icon" type="image/png" href="/app-icon64.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>GEOS WASM Tester</title>
-    <link rel="stylesheet" href="/lib/ol2/theme/default/style.css" type="text/css" />
-    <link rel="stylesheet" href="/lib/ol2/theme/default/style-patch.css" type="text/css" />
-    <link rel="stylesheet" href="/lib/ol2/examples/style.css" type="text/css" />
+    <link rel="stylesheet" href="node_modules/ol/ol.css">
     <link rel="stylesheet" href="style.css" type="text/css">
-    <script src="/lib/ol2/OpenLayers.js"></script>
-    <script src="/lib/ol2/EditingToolbarExt.js"></script>
     <script src="src/main.js" type="module"></script>
   </head>
   <body>
@@ -183,12 +179,11 @@
       </div>
       <div class="right">
         <div id="map"></div>
-        <div class="map-status">
-          <div>
+        <div class="statusbar">
+          <div class="display">
             <input type="checkbox" id="chkDisplayInput" checked="checked" />
             <img src="./assets/images/testbuilder/BinaryGeomFunction.png" title="Display Input Geometries"/>
           </div>
-          <div class="vertical-separator"></div>
           <div class="pm">
             <div>
               <label for="selPrecisionModel">PM</label>
@@ -203,6 +198,7 @@
               <input type="text" id="txtFixedScale" value="1.0" />
             </div>
           </div>
+          <div id="divMousePosition"></div>
         </div>
       </div>
       <div class="bottom">
