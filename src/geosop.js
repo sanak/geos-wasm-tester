@@ -19,7 +19,7 @@ export default function GeosOp (context) {
     }
   }
 
-  this.formatWkt = (wkt) => {
+  this.normalizeWkt = (wkt) => {
     const geom = geos.GEOSWKTReader_read(reader, wkt)
     try {
       const formatted = geos.GEOSWKTWriter_write(writer, geom)

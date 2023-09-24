@@ -93,12 +93,12 @@ export default function TestCasePanel (context) {
 
     const nodeCase = xmldom.getElementsByTagName('case')[caseIdx - 1]
     let a = nodeCase.getElementsByTagName('a')[0].firstChild.data
-    a = context.geosOp.formatWkt(a)
+    a = context.geosOp.normalizeWkt(a)
     let b = null
     const nodeBs = nodeCase.getElementsByTagName('b')
     if (nodeBs.length > 0) {
       b = nodeBs[0].firstChild.data
-      b = context.geosOp.formatWkt(b)
+      b = context.geosOp.normalizeWkt(b)
     }
     const nodeTest = nodeCase.getElementsByTagName('test')[0]
     const nodeOp = nodeTest.getElementsByTagName('op')[0]
@@ -113,7 +113,7 @@ export default function TestCasePanel (context) {
     let expected = nodeOp.firstChild.data
     expected = expected.replace(/^\s+|\n|\s+$/g, '')
     if (isWkt(expected)) {
-      expected = context.geosOp.formatWkt(expected)
+      expected = context.geosOp.normalizeWkt(expected)
     }
     switch (opname.toLowerCase()) {
       case 'copy':
