@@ -137,10 +137,9 @@ export default function GeosOp (context) {
         }
         break
       case 'wkt':
-        // TODO:
-        // if (!isEmpty(expected)) {
-        //   expected = geomToWkt(geomFromWkt(expected))
-        // }
+        if (!isEmpty(expected)) {
+          expected = geomToWkt(geomFromWkt(expected))
+        }
         break
     }
     txtResult.value = result
