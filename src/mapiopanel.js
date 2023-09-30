@@ -11,6 +11,7 @@ import { createStringXY } from 'ol/coordinate.js'
 import { defaults as defaultControls } from 'ol/control.js'
 // import { getCenter } from 'ol/extent.js'
 // import { isEmpty } from './util.js'
+import EditBarExt from './lib/ol-ext/control/EditBarExt.js'
 
 export default function MapIoPanel (context) {
   const self = this
@@ -19,9 +20,32 @@ export default function MapIoPanel (context) {
   self.featureB = null
 
   let map
-  let formatWkt
-  let layerA, layerB, layerResult, layerExpected
-  let featureResult, featureExpected
+  let wktFormat
+  let ALayer, BLayer, resultLayer, expectedLayer
+  // let featureResult, featureExpected
+
+  const getStyle = (layerType) => {
+    const fillColor = {
+      A: 'rgba(223,223,255,0.4)',
+      B: 'rgba(255,223,223,0.4)',
+      Result: 'rgba(255,255,194,0.4)',
+      Expected: 'rgba(194,255,194,0.4)'
+    }
+    const strokeColor = {
+      A: '#2929fd',
+      B: '#a52929',
+      Result: '#acd62b',
+      Expected: '#2bd656'
+    }
+    return {
+      'fill-color': fillColor[layerType] || 'rgba(223,223,255,0.4)',
+      'stroke-color': strokeColor[layerType] || '#2929fd',
+      'stroke-width': 1,
+      'circle-radius': 6,
+      'circle-fill-color': 'rgba(223,223,255,0.4)',
+      'circle-stroke-color': '#2929fd'
+    }
+  }
 
   this.init = () => {
     initMap()
@@ -69,39 +93,6 @@ export default function MapIoPanel (context) {
 
   const initMap = () => {
     /*
-    const options = {
-      units: 'm',
-      maxExtent: new OpenLayers.Bounds(
-        -100000000000000000000,
-        -100000000000000000000,
-        100000000000000000000,
-        100000000000000000000
-      ), // limit of number 'e' format
-      controls: [
-        new OpenLayers.Control.PanZoomBar(),
-        new OpenLayers.Control.MousePosition()
-      ],
-      numZoomLevels: 16
-    }
-    map = new OpenLayers.Map('map', options)
-    self.map = map // For debug
-    wktfmt = new OpenLayers.Format.WKT({
-      externalProjection: new OpenLayers.Projection('EPSG:4326')
-    })
-    const graphic = new OpenLayers.Layer.Image(
-      'OpenLayers Image',
-      './lib/ol2/img/blank.gif',
-      new OpenLayers.Bounds(-100000, -100000, 100000, 100000), // TODO: initial scale ?
-      new OpenLayers.Size(426, 426)
-    )
-
-    layerInput = new OpenLayers.Layer.Vector('Input Vector Layer', {
-      styleMap: new OpenLayers.StyleMap({
-        temporary: OpenLayers.Feature.Vector.style.default,
-        default: OpenLayers.Feature.Vector.style.default,
-        select: OpenLayers.Feature.Vector.style.select
-      })
-    })
     layerInput.events.on({
       featureadded: onInputFeatureAdded,
       beforefeaturemodified: function (event) {
@@ -118,10 +109,6 @@ export default function MapIoPanel (context) {
         updateInput()
       }
     })
-    layerOutput = new OpenLayers.Layer.Vector('Output Vector Layer')
-
-    map.addLayers([graphic, layerInput, layerOutput])
-    map.addControl(new OpenLayers.Control.EditingToolbarExt(layerInput))
 
     map.zoomToExtent(new OpenLayers.Bounds(-10, -10, 416, 416))
     */
@@ -137,25 +124,21 @@ export default function MapIoPanel (context) {
     //   units: 'm',
     //   extent: extent
     // })
-    layerA = new VectorLayer({
-      source: new VectorSource({
-        features: []
-      })
+    ALayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getStyle('A')
     })
-    layerB = new VectorLayer({
-      source: new VectorSource({
-        features: []
-      })
+    BLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getStyle('B')
     })
-    layerResult = new VectorLayer({
-      source: new VectorSource({
-        features: []
-      })
+    resultLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getStyle('Result')
     })
-    layerExpected = new VectorLayer({
-      source: new VectorSource({
-        features: []
-      })
+    expectedLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getStyle('Expected')
     })
     map = new Map({
       controls: defaultControls().extend([
@@ -177,10 +160,10 @@ export default function MapIoPanel (context) {
         new TileLayer({
           source: new OSM()
         }),
-        layerA,
-        layerB,
-        layerResult,
-        layerExpected
+        ALayer,
+        BLayer,
+        resultLayer,
+        expectedLayer
       ],
       target: 'map',
       view: new View({
@@ -194,7 +177,12 @@ export default function MapIoPanel (context) {
     })
     self.map = map // For debug
 
-    formatWkt = new WKT()
+    const edit = new EditBarExt({
+      source: ALayer.getSource()
+    })
+    map.addControl(edit)
+
+    wktFormat = new WKT()
   }
 
   /*
