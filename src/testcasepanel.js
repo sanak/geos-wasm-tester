@@ -195,9 +195,9 @@ export default function TestCasePanel (context) {
         opname = 'clipByRect'
         break
     }
-    context.mapIoPanel.loadInput(a, 'a')
+    context.mapIoPanel.loadInput(a, 'A')
     if (!isEmpty(b)) {
-      context.mapIoPanel.loadInput(b, 'b')
+      context.mapIoPanel.loadInput(b, 'B')
     }
     if (context.operationPanel.updateOperation(opname, arg1, arg2, arg3, arg4, arg5, arg6, arg7)) {
       context.geosOp.compute(expected)

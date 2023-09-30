@@ -10,21 +10,20 @@ import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
 import { createStringXY } from 'ol/coordinate.js'
 import { defaults as defaultControls } from 'ol/control.js'
 // import { getCenter } from 'ol/extent.js'
-// import { isEmpty } from './util.js'
+import { extend } from 'ol/extent.js'
+import { isEmpty } from './util.js'
+
 import EditBarExt from './lib/ol-ext/control/EditBarExt.js'
 
 export default function MapIoPanel (context) {
   const self = this
 
-  self.featureA = null
-  self.featureB = null
-
   let map
   let wktFormat
   let ALayer, BLayer, resultLayer, expectedLayer
-  // let featureResult, featureExpected
+  let editBar
 
-  const getStyle = (layerType) => {
+  const getStyle = (type) => {
     const fillColor = {
       A: 'rgba(223,223,255,0.4)',
       B: 'rgba(255,223,223,0.4)',
@@ -38,8 +37,8 @@ export default function MapIoPanel (context) {
       Expected: '#2bd656'
     }
     return {
-      'fill-color': fillColor[layerType] || 'rgba(223,223,255,0.4)',
-      'stroke-color': strokeColor[layerType] || '#2929fd',
+      'fill-color': fillColor[type] || 'rgba(223,223,255,0.4)',
+      'stroke-color': strokeColor[type] || '#2929fd',
       'stroke-width': 1,
       'circle-radius': 6,
       'circle-fill-color': 'rgba(223,223,255,0.4)',
@@ -50,7 +49,6 @@ export default function MapIoPanel (context) {
   this.init = () => {
     initMap()
 
-    /*
     const chkDisplayInput = document.getElementById('chkDisplayInput')
     chkDisplayInput.addEventListener('change', (e) => {
       displayInputGeometries(e.currentTarget.checked)
@@ -85,33 +83,12 @@ export default function MapIoPanel (context) {
       self.clearOutput()
     })
     // Switch default input
-    switchInput('a')
-    */
+    switchInput('A')
 
     return self
   }
 
   const initMap = () => {
-    /*
-    layerInput.events.on({
-      featureadded: onInputFeatureAdded,
-      beforefeaturemodified: function (event) {
-        const feature = event.feature
-        const strtype = getFeatureType(feature)
-        setInputType(strtype)
-        updateInput()
-        feature.layer.redraw() // for vertex marker
-      },
-      featuremodified: function (event) {
-        updateInput()
-      },
-      afterfeaturemodified: function (event) {
-        updateInput()
-      }
-    })
-
-    map.zoomToExtent(new OpenLayers.Bounds(-10, -10, 416, 416))
-    */
     // const radius = 6378137
     // const extent = [
     //   -Math.PI * radius,
@@ -128,18 +105,30 @@ export default function MapIoPanel (context) {
       source: new VectorSource(),
       style: getStyle('A')
     })
+    const ASource = ALayer.getSource()
+    ASource.set('type', 'A')
+    ASource.on('addfeature', onInputFeatureChanged)
+    ASource.on('changefeature', onInputFeatureChanged)
+    ASource.on('removefeature', onInputFeatureChanged)
     BLayer = new VectorLayer({
       source: new VectorSource(),
       style: getStyle('B')
     })
+    const BSource = BLayer.getSource()
+    BSource.set('type', 'B')
+    ASource.on('addfeature', onInputFeatureChanged)
+    ASource.on('changefeature', onInputFeatureChanged)
+    ASource.on('removefeature', onInputFeatureChanged)
     resultLayer = new VectorLayer({
       source: new VectorSource(),
       style: getStyle('Result')
     })
+    resultLayer.getSource().set('type', 'Result')
     expectedLayer = new VectorLayer({
       source: new VectorSource(),
       style: getStyle('Expected')
     })
+    expectedLayer.getSource().set('type', 'Expected')
     map = new Map({
       controls: defaultControls().extend([
         new MousePosition({
@@ -177,49 +166,37 @@ export default function MapIoPanel (context) {
     })
     self.map = map // For debug
 
-    const edit = new EditBarExt({
+    editBar = new EditBarExt({
       source: ALayer.getSource()
     })
-    map.addControl(edit)
+    editBar.getInteraction('')
+    map.addControl(editBar)
+
+    // map.getView().fit([-10, -10, 416, 416])
 
     wktFormat = new WKT()
   }
 
-  /*
-  const onInputFeatureAdded = (event) => {
-    const feature = event.feature
-    const strtype = getInputType()
-    setFeatureType(feature, strtype)
-    setFeatureStyle(feature, strtype)
-    if (strtype === 'a') {
-      if (self.featureA) {
-        destroyFeatures(layerInput, self.featureA)
-      }
-      self.featureA = feature
-    } else if (strtype === 'b') {
-      if (self.featureB) {
-        destroyFeatures(layerInput, self.featureB)
-      }
-      self.featureB = feature
-    }
-    updateInput()
+  const onInputFeatureChanged = (event) => {
+    const source = event.target
+    updateInput(source)
   }
 
-  const featureToWkt = (feature) => {
+  const featureToWkt = (features) => {
     let str = ''
-    if (isEmpty(feature)) {
+    if (isEmpty(features)) {
       return str
     }
 
-    if (feature.constructor !== Array) {
-      str = wktfmt.write(feature)
+    if (features.length === 1) {
+      str = wktFormat.writeFeature(features[0])
       // not a good idea in general, just for this demo
       str = str.replace(/,/g, ', ')
     } else {
       str = 'GEOMETRYCOLLECTION('
-      for (let i = 0; i < feature.length; i++) {
-        str += wktfmt.write(feature[i])
-        if (i !== feature.length - 1) {
+      for (let i = 0; i < features.length; i++) {
+        str += wktFormat.writeFeature(features[i])
+        if (i !== features.length - 1) {
           str += ', '
         }
       }
@@ -232,166 +209,48 @@ export default function MapIoPanel (context) {
     if (isEmpty(wkt)) {
       return null
     }
-    const feature = wktfmt.read(wkt)
-    // remove empty geometry from GEOMETRYCOLLECTION
-    if (!isEmpty(feature) && feature.constructor === Array) {
-      return feature.filter((f) => !isEmpty(f))
-    } else {
-      return feature
-    }
-  }
-
-  const addFeatures = (layer, feature) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    layerInput.events.un({
-      featureadded: onInputFeatureAdded
-    })
-    if (feature.constructor !== Array) {
-      layer.addFeatures([feature])
-    } else {
-      layer.addFeatures(feature)
-    }
-    layerInput.events.on({
-      featureadded: onInputFeatureAdded
-    })
+    const feature = wktFormat.readFeature(wkt)
+    return feature
   }
 
   const zoomToExtent = (feature, isFull) => {
-    let bounds
+    let extent = null
     if (!isEmpty(feature) && !isFull) {
       if (feature.constructor !== Array) {
-        bounds = feature.geometry.getBounds()
+        extent = feature.getGeometry().getExtent()
       } else {
         for (let i = 0; i < feature.length; i++) {
           if (!isEmpty(feature[i])) {
-            if (isEmpty(bounds)) {
-              bounds = feature[i].geometry.getBounds()
+            if (isEmpty(extent)) {
+              extent = feature[i].getGeometry().getExtent()
             } else {
-              bounds.extend(feature[i].geometry.getBounds())
+              extent = extend(extent, feature[i].getGeometry().getExtent())
             }
           }
         }
       }
     } else if (isFull) {
-      const features = layerInput.features.concat(layerOutput.features)
+      const features = [ALayer, BLayer, resultLayer, expectedLayer].flatMap((layer) => {
+        return layer.getSource().getFeatures()
+      })
       for (let i = 0; i < features.length; i++) {
         if (!isEmpty(features[i])) {
-          if (isEmpty(bounds)) {
-            bounds = features[i].geometry.getBounds()
+          if (isEmpty(extent)) {
+            extent = features[i].getGeometry().getExtent()
           } else {
-            bounds.extend(features[i].geometry.getBounds())
+            extent = extend(extent, features[i].getGeometry().getExtent())
           }
         }
       }
     }
-    if (!isEmpty(bounds)) {
-      map.zoomToExtent(bounds)
+    if (!isEmpty(extent)) {
+      map.getView().fit(extent)
     }
   }
 
-  const destroyFeatures = (layer, feature) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    if (feature.constructor !== Array) {
-      layer.destroyFeatures([feature])
-    } else {
-      layer.destroyFeatures(feature)
-    }
-    feature = null
-  }
-
-  const setDefaultStyle = (strtype) => {
-    if (strtype === 'a') {
-      OpenLayers.Feature.Vector.style.default.strokeColor = '#2929fd'
-      OpenLayers.Feature.Vector.style.default.fillColor = '#dfdfff'
-    } else if (strtype === 'b') {
-      OpenLayers.Feature.Vector.style.default.strokeColor = '#a52929'
-      OpenLayers.Feature.Vector.style.default.fillColor = '#ffdfdf'
-    }
-  }
-
-  const setFeatureStyle = (feature, strtype) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    const style = {
-      fillColor: '#ee9900',
-      fillOpacity: 0.4,
-      hoverFillColor: 'white',
-      hoverFillOpacity: 0.8,
-      strokeColor: '#ee9900',
-      strokeOpacity: 1,
-      strokeWidth: 1,
-      strokeLinecap: 'round',
-      strokeDashstyle: 'solid',
-      hoverStrokeColor: 'red',
-      hoverStrokeOpacity: 1,
-      hoverStrokeWidth: 0.2,
-      pointRadius: 6,
-      hoverPointRadius: 1,
-      hoverPointUnit: '%',
-      pointerEvents: 'visiblePainted',
-      cursor: 'inherit'
-    }
-    if (strtype === 'a') {
-      style.strokeColor = '#2929fd'
-      style.fillColor = '#dfdfff'
-    } else if (strtype === 'b') {
-      style.strokeColor = '#a52929'
-      style.fillColor = '#ffdfdf'
-    } else if (strtype === 'result') {
-      style.strokeColor = '#acd62b'
-      style.fillColor = '#ffffc2'
-    } else if (strtype === 'expected') {
-      style.strokeColor = '#2bd656'
-      style.fillColor = '#c2ffc2'
-    }
-
-    if (feature.constructor !== Array) {
-      feature.style = style
-    } else {
-      for (let i = 0; i < feature.length; i++) {
-        feature[i].style = style
-      }
-    }
-  }
-
-  const setFeatureType = (feature, strtype) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    if (feature.constructor !== Array) {
-      feature.attributes.type = strtype
-    } else {
-      for (let i = 0; i < feature.length; i++) {
-        feature[i].attributes.type = strtype
-      }
-    }
-  }
-
-  const getFeatureType = (feature) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    let strtype = ''
-    if (feature.constructor !== Array) {
-      strtype = feature.attributes.type
-    } else if (feature.length > 0) {
-      strtype = feature[0].attributes.type
-    }
-    return strtype
-  }
-
-  const displayInputGeometries = (visibility) => {
-    layerInput.setVisibility(visibility)
+  const displayInputGeometries = (visible) => {
+    ALayer.setVisible(visible)
+    BLayer.setVisible(visible)
   }
 
   // TODO: move to IOPanel
@@ -418,19 +277,11 @@ export default function MapIoPanel (context) {
 
   const getInputType = () => {
     if (document.getElementById('radA').checked) {
-      return 'a'
+      return 'A'
     } else if (document.getElementById('radB').checked) {
-      return 'b'
+      return 'B'
     }
-    return 'a'
-  }
-
-  const setInputType = (strtype) => {
-    if (strtype === 'a') {
-      document.getElementById('radA').checked = true
-    } else if (strtype === 'b') {
-      document.getElementById('radB').checked = true
-    }
+    return 'A'
   }
 
   this.setOutputType = (strtype) => {
@@ -443,58 +294,56 @@ export default function MapIoPanel (context) {
     }
   }
 
-  const switchInput = (strtype) => {
+  const switchInput = (type) => {
     const txtInputA = document.getElementById('txtInputA')
     const txtInputB = document.getElementById('txtInputB')
-    if (strtype === 'a') {
+    if (type === 'A') {
       txtInputA.style.display = 'block'
       txtInputB.style.display = 'none'
-    } else if (strtype === 'b') {
+    } else if (type === 'B') {
       txtInputA.style.display = 'none'
       txtInputB.style.display = 'block'
     }
-    setDefaultStyle(strtype)
   }
 
-  const updateInput = () => {
-    const strtype = getInputType()
+  const updateInput = (source) => {
+    const type = source.get('type')
+    const features = source.getFeatures()
     let wkt = ''
-    if (strtype === 'a' && self.featureA) {
-      wkt = featureToWkt(self.featureA)
+    if (type === 'A') {
+      wkt = featureToWkt(features)
       document.getElementById('txtInputA').value = wkt
-    } else if (strtype === 'b' && self.featureB) {
-      wkt = featureToWkt(self.featureB)
+    } else if (type === 'B') {
+      wkt = featureToWkt(features)
       document.getElementById('txtInputB').value = wkt
     }
-    setDefaultStyle(strtype)
   }
 
-  const switchOutput = (strtype) => {
+  const switchOutput = (type) => {
     const txtResult = document.getElementById('txtResult')
     const txtExpected = document.getElementById('txtExpected')
-    if (strtype === 'result') {
+    if (type === 'Result') {
       txtResult.style.display = 'block'
       txtExpected.style.display = 'none'
-    } else if (strtype === 'expected') {
+    } else if (type === 'Expected') {
       txtResult.style.display = 'none'
       txtExpected.style.display = 'block'
     }
-    setDefaultStyle(strtype)
   }
 
-  this.loadInput = (wkt, strtype) => {
-    if (isEmpty(strtype)) {
-      strtype = getInputType()
+  this.loadInput = (wkt, type) => {
+    if (isEmpty(type)) {
+      type = getInputType()
     }
     const txtInputA = document.getElementById('txtInputA')
     const txtInputB = document.getElementById('txtInputB')
-    if (strtype === 'a') {
+    if (type === 'A') {
       if (isEmpty(wkt)) {
         wkt = txtInputA.value
       } else {
         txtInputA.value = wkt
       }
-    } else if (strtype === 'b') {
+    } else if (type === 'B') {
       if (isEmpty(wkt)) {
         wkt = txtInputB.value
       } else {
@@ -503,15 +352,12 @@ export default function MapIoPanel (context) {
     }
     const feature = featureFromWkt(wkt)
     if (feature) {
-      setFeatureType(feature, strtype)
-      setFeatureStyle(feature, strtype)
-      addFeatures(layerInput, feature)
-      if (strtype === 'a') {
-        destroyFeatures(layerInput, self.featureA)
-        self.featureA = feature
-      } else if (strtype === 'b') {
-        destroyFeatures(layerInput, self.featureB)
-        self.featureB = feature
+      if (type === 'A') {
+        ALayer.getSource().clear()
+        ALayer.getSource().addFeature(feature)
+      } else if (type === 'B') {
+        BLayer.getSource().clear()
+        ALayer.getSource().addFeature(feature)
       }
       zoomToExtent(feature, false)
     }
@@ -521,42 +367,34 @@ export default function MapIoPanel (context) {
     if (!isEmpty(result)) {
       const feature = featureFromWkt(result)
       if (feature) {
-        setFeatureStyle(feature, 'result')
-        addFeatures(layerOutput, feature)
-        destroyFeatures(layerOutput, featureResult)
-        featureResult = feature
+        resultLayer.getSource().clear()
+        resultLayer.getSource().addFeature(feature)
       }
     }
     if (!isEmpty(expected)) {
       const feature = featureFromWkt(expected)
       if (feature) {
-        setFeatureStyle(feature, 'expected')
-        addFeatures(layerOutput, feature)
-        destroyFeatures(layerOutput, featureExpected)
-        featureExpected = feature
+        expectedLayer.getSource().clear()
+        expectedLayer.getSource().addFeature(feature)
       }
     }
     zoomToExtent(null, true)
   }
 
   this.clearInput = (isAll) => {
-    if ((getInputType() === 'a' || isAll)) {
-      if (self.featureA) {
-        destroyFeatures(layerInput, self.featureA)
-      }
+    if ((getInputType() === 'A' || isAll)) {
+      ALayer.getSource().clear()
       document.getElementById('txtInputA').value = ''
     }
-    if ((getInputType() === 'b' || isAll)) {
-      if (self.featureB) {
-        destroyFeatures(layerInput, self.featureB)
-      }
+    if ((getInputType() === 'B' || isAll)) {
+      BLayer.getSource().clear()
       document.getElementById('txtInputB').value = ''
     }
   }
 
   this.clearOutput = () => {
-    destroyFeatures(layerOutput, featureResult)
-    destroyFeatures(layerOutput, featureExpected)
+    resultLayer.getSource().clear()
+    expectedLayer.getSource().clear()
     const txtResult = document.getElementById('txtResult')
     const txtExpected = document.getElementById('txtExpected')
     txtResult.value = ''
@@ -564,5 +402,4 @@ export default function MapIoPanel (context) {
     txtResult.style.backgroundColor = '#ffffff'
     txtExpected.style.backgroundColor = '#ffffff'
   }
-  */
 }
