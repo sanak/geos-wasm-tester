@@ -43,6 +43,9 @@ const editBarExt = class EditBarExt extends Bar {
     })
 
     this._source = options.source
+    this._drawStyle = options.drawStyle
+    this._selectStyle = options.selectStyle
+    this._modifyStyle = options.modifyStyle
     // Add buttons / interaction
     this._interactions = {}
     this._setSelectInteraction(options)
@@ -162,7 +165,8 @@ const editBarExt = class EditBarExt extends Bar {
         this._interactions.Select = options.interactions.Select
       } else {
         this._interactions.Select = new Select({
-          condition: click
+          condition: click,
+          style: this._selectStyle
         })
       }
       const sel = this._interactions.Select
@@ -172,8 +176,8 @@ const editBarExt = class EditBarExt extends Bar {
         title: this._getTitle(options.interactions.Select) || 'Select',
         interaction: sel,
         bar: sbar.getControls().length ? sbar : undefined,
-        autoActivate: true,
-        active: true
+        autoActivate: false,
+        active: false
       })
 
       this.addControl(selectCtrl)
@@ -195,14 +199,17 @@ const editBarExt = class EditBarExt extends Bar {
       } else {
         this._interactions.DrawPoint = new Draw({
           type: 'Point',
-          source: this._source
+          source: this._source,
+          style: this._drawStyle
         })
       }
       const pedit = new Toggle({
         className: 'ol-drawpoint',
         name: 'DrawPoint',
         title: this._getTitle(options.interactions.DrawPoint) || 'Point',
-        interaction: this._interactions.DrawPoint
+        interaction: this._interactions.DrawPoint,
+        autoActivate: true,
+        active: true
       })
       this.addControl(pedit)
     }
@@ -214,6 +221,7 @@ const editBarExt = class EditBarExt extends Bar {
         this._interactions.DrawLine = new Draw({
           type: 'LineString',
           source: this._source,
+          style: this._drawStyle,
           // Count inserted points
           geometryFunction: function (coordinates, geometry) {
             if (geometry) {
@@ -267,6 +275,7 @@ const editBarExt = class EditBarExt extends Bar {
         this._interactions.DrawPolygon = new Draw({
           type: 'Polygon',
           source: this._source,
+          style: this._drawStyle,
           // Count inserted points
           geometryFunction: function (coordinates, geometry) {
             this.nbpts = coordinates[0].length
@@ -293,7 +302,9 @@ const editBarExt = class EditBarExt extends Bar {
       if (options.interactions.DrawHole instanceof DrawHole) {
         this._interactions.DrawHole = options.interactions.DrawHole
       } else {
-        this._interactions.DrawHole = new DrawHole()
+        this._interactions.DrawHole = new DrawHole({
+          style: this._selectStyle
+        })
       }
       this._setDrawPolygon(
         'ol-drawhole',
@@ -314,6 +325,7 @@ const editBarExt = class EditBarExt extends Bar {
       } else {
         this._interactions.DrawRegular = new DrawRegular({
           source: this._source,
+          style: this._drawStyle,
           sides: 4
         })
         if (options.interactions.DrawRegular) {
@@ -370,10 +382,10 @@ const editBarExt = class EditBarExt extends Bar {
    */
   _setDrawPolygon (className, interaction, title, name, options) {
     const fedit = new Toggle({
-      className: className,
-      name: name,
-      title: title,
-      interaction: interaction,
+      className,
+      name,
+      title,
+      interaction,
       // Options bar associated with the control
       bar: new Bar({
         controls: [
@@ -413,7 +425,8 @@ const editBarExt = class EditBarExt extends Bar {
         this._interactions.ModifySelect = options.interactions.ModifySelect
       } else {
         this._interactions.ModifySelect = new ModifyFeature({
-          features: this.getInteraction('Select').getFeatures()
+          features: this.getInteraction('Select').getFeatures(),
+          style: this._modifyStyle
         })
       }
       if (this.getMap()) {

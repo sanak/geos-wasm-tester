@@ -1,19 +1,32 @@
-// import ImageLayer from 'ol/layer/Image.js'
+import ImageLayer from 'ol/layer/Image.js'
 import Map from 'ol/Map.js'
 import MousePosition from 'ol/control/MousePosition.js'
 import View from 'ol/View.js'
 import { WKT } from 'ol/format.js'
-import { OSM, Vector as VectorSource } from 'ol/source.js'
-// import Projection from 'ol/proj/Projection.js'
-// import Static from 'ol/source/ImageStatic.js'
-import { Tile as TileLayer, Vector as VectorLayer } from 'ol/layer.js'
+import {
+  // OSM,
+  Vector as VectorSource
+} from 'ol/source.js'
+import { get as getProjection } from 'ol/proj.js'
+import Static from 'ol/source/ImageStatic.js'
+import {
+  // Tile as TileLayer,
+  Vector as VectorLayer
+} from 'ol/layer.js'
 import { createStringXY } from 'ol/coordinate.js'
 import { defaults as defaultControls } from 'ol/control.js'
-// import { getCenter } from 'ol/extent.js'
-import { extend } from 'ol/extent.js'
-import { isEmpty } from './util.js'
-
+import {
+  buffer,
+  extend,
+  // getCenter,
+  getSize
+} from 'ol/extent.js'
+import CircleStyle from 'ol/style/Circle.js'
+import Fill from 'ol/style/Fill.js'
+import Stroke from 'ol/style/Stroke.js'
+import Style from 'ol/style/Style.js'
 import EditBarExt from './lib/ol-ext/control/EditBarExt.js'
+import { isEmpty } from './util.js'
 
 export default function MapIoPanel (context) {
   const self = this
@@ -22,29 +35,6 @@ export default function MapIoPanel (context) {
   let wktFormat
   let ALayer, BLayer, resultLayer, expectedLayer
   let editBar
-
-  const getStyle = (type) => {
-    const fillColor = {
-      A: 'rgba(223,223,255,0.4)',
-      B: 'rgba(255,223,223,0.4)',
-      Result: 'rgba(255,255,194,0.4)',
-      Expected: 'rgba(194,255,194,0.4)'
-    }
-    const strokeColor = {
-      A: '#2929fd',
-      B: '#a52929',
-      Result: '#acd62b',
-      Expected: '#2bd656'
-    }
-    return {
-      'fill-color': fillColor[type] || 'rgba(223,223,255,0.4)',
-      'stroke-color': strokeColor[type] || '#2929fd',
-      'stroke-width': 1,
-      'circle-radius': 6,
-      'circle-fill-color': 'rgba(223,223,255,0.4)',
-      'circle-stroke-color': '#2929fd'
-    }
-  }
 
   this.init = () => {
     initMap()
@@ -89,21 +79,11 @@ export default function MapIoPanel (context) {
   }
 
   const initMap = () => {
-    // const radius = 6378137
-    // const extent = [
-    //   -Math.PI * radius,
-    //   -Math.PI * radius,
-    //   Math.PI * radius,
-    //   Math.PI * radius
-    // ]
-    // const projection = new Projection({
-    //   code: 'EPSG:3857',
-    //   units: 'm',
-    //   extent: extent
-    // })
+    const projection = getProjection('EPSG:3857')
+    const extent = projection.getExtent()
     ALayer = new VectorLayer({
       source: new VectorSource(),
-      style: getStyle('A')
+      style: getDefaultStyle('A')
     })
     const ASource = ALayer.getSource()
     ASource.set('type', 'A')
@@ -112,21 +92,21 @@ export default function MapIoPanel (context) {
     ASource.on('removefeature', onInputFeatureChanged)
     BLayer = new VectorLayer({
       source: new VectorSource(),
-      style: getStyle('B')
+      style: getDefaultStyle('B')
     })
     const BSource = BLayer.getSource()
     BSource.set('type', 'B')
-    ASource.on('addfeature', onInputFeatureChanged)
-    ASource.on('changefeature', onInputFeatureChanged)
-    ASource.on('removefeature', onInputFeatureChanged)
+    BSource.on('addfeature', onInputFeatureChanged)
+    BSource.on('changefeature', onInputFeatureChanged)
+    BSource.on('removefeature', onInputFeatureChanged)
     resultLayer = new VectorLayer({
       source: new VectorSource(),
-      style: getStyle('Result')
+      style: getDefaultStyle('Result')
     })
     resultLayer.getSource().set('type', 'Result')
     expectedLayer = new VectorLayer({
       source: new VectorSource(),
-      style: getStyle('Expected')
+      style: getDefaultStyle('Expected')
     })
     expectedLayer.getSource().set('type', 'Expected')
     map = new Map({
@@ -139,16 +119,17 @@ export default function MapIoPanel (context) {
         })
       ]),
       layers: [
-        // new ImageLayer({
-        //   source: new Static({
-        //     url: '/images/blank.gif',
-        //     projection: projection,
-        //     imageExtent: extent
-        //   })
-        // }),
-        new TileLayer({
-          source: new OSM()
+        new ImageLayer({
+          source: new Static({
+            url: '/images/blank.gif',
+            projection,
+            imageExtent: extent
+          })
         }),
+        // TODO: Needs attribution and layer control
+        // new TileLayer({
+        //   source: new OSM()
+        // }),
         ALayer,
         BLayer,
         resultLayer,
@@ -156,9 +137,7 @@ export default function MapIoPanel (context) {
       ],
       target: 'map',
       view: new View({
-        // projection: projection,
-        // center: getCenter(extent),
-        projection: 'EPSG:3857',
+        projection, // 'EPSG:3857',
         center: [0, 0],
         zoom: 1,
         maxZoom: 22
@@ -167,14 +146,103 @@ export default function MapIoPanel (context) {
     self.map = map // For debug
 
     editBar = new EditBarExt({
-      source: ALayer.getSource()
+      source: ALayer.getSource(),
+      drawStyle: getDefaultStyle('A'),
+      selectStyle: getEditingStyleFunction(),
+      modifyStyle: getEditingStyleFunction()
     })
     editBar.getInteraction('')
     map.addControl(editBar)
 
-    // map.getView().fit([-10, -10, 416, 416])
+    map.getView().fit([-10, -10, 416, 416])
 
     wktFormat = new WKT()
+  }
+
+  const getDefaultStyle = (type) => {
+    const fillColor = {
+      A: 'rgba(200,200,255,0.6)', // 'rgba(223,223,255,0.4)',
+      B: 'rgba(255,200,200,0.6)', // 'rgba(255,223,223,0.4)',
+      Result: 'rgba(255,255,100,0.6)', // 'rgba(255,255,194,0.4)',
+      Expected: 'rgba(194,255,194,0.4)'
+    }
+    const strokeColor = {
+      A: 'rgba(0,0,255,1)', // '#2929fd',
+      B: 'rgba(150,0,0,1)', // '#a52929',
+      Result: 'rgba(120,180,0,1)', // '#acd62b',
+      Expected: '#2bd656'
+    }
+    return {
+      'fill-color': fillColor[type] || 'rgba(200,200,255,0.6)', // 'rgba(223,223,255,0.4)',
+      'stroke-color': strokeColor[type] || 'rgba(0,0,255,1)', // '#2929fd',
+      'stroke-width': 1,
+      'circle-radius': 6,
+      'circle-fill-color': fillColor[type] || 'rgba(200,200,255,0.6)', // 'rgba(223,223,255,0.4)',
+      'circle-stroke-color': strokeColor[type] || 'rgba(0,0,255,1)' // '#2929fd'
+    }
+  }
+
+  const getEditingStyleFunction = () => {
+    const styles = {}
+    // Use result color for now
+    const fillColor = [255, 255, 100, 0.6]
+    const strokeColor = [120, 180, 0, 1]
+    const width = 2
+    styles.Polygon = [
+      new Style({
+        fill: new Fill({
+          color: fillColor
+        })
+      }),
+      new Style({
+        stroke: new Stroke({
+          color: strokeColor,
+          width
+        })
+      })
+    ]
+    styles.MultiPolygon = styles.Polygon
+
+    styles.LineString = [
+      new Style({
+        stroke: new Stroke({
+          color: strokeColor,
+          width
+        })
+      })
+    ]
+    styles.MultiLineString = styles.LineString
+
+    styles.Circle = styles.Polygon // .concat(styles.LineString)
+
+    styles.Point = [
+      new Style({
+        image: new CircleStyle({
+          radius: 6,
+          fill: new Fill({
+            color: fillColor
+          }),
+          stroke: new Stroke({
+            color: strokeColor,
+            width
+          })
+        }),
+        zIndex: Infinity
+      })
+    ]
+    styles.MultiPoint = styles.Point
+
+    styles.GeometryCollection = styles.Polygon.concat(
+      styles.LineString,
+      styles.Point
+    )
+
+    return function (feature) {
+      if (!feature.getGeometry()) {
+        return null
+      }
+      return styles[feature.getGeometry().getType()]
+    }
   }
 
   const onInputFeatureChanged = (event) => {
@@ -244,6 +312,9 @@ export default function MapIoPanel (context) {
       }
     }
     if (!isEmpty(extent)) {
+      const size = getSize(extent)
+      const max = Math.max(size[0], size[1])
+      extent = buffer(extent, max * 0.1)
       map.getView().fit(extent)
     }
   }
@@ -297,6 +368,7 @@ export default function MapIoPanel (context) {
   const switchInput = (type) => {
     const txtInputA = document.getElementById('txtInputA')
     const txtInputB = document.getElementById('txtInputB')
+    // TODO:
     if (type === 'A') {
       txtInputA.style.display = 'block'
       txtInputB.style.display = 'none'
