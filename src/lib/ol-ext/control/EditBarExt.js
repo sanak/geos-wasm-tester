@@ -43,6 +43,7 @@ const editBarExt = class EditBarExt extends Bar {
     })
 
     this._source = options.source
+    this._layers = options.layers
     this._drawStyle = options.drawStyle
     this._selectStyle = options.selectStyle
     this._modifyStyle = options.modifyStyle
@@ -78,6 +79,35 @@ const editBarExt = class EditBarExt extends Bar {
       if (this._interactions.ModifySelect) {
         this.getMap().addInteraction(this._interactions.ModifySelect)
       }
+    }
+  }
+
+  setDrawSourceAndStyle (source, style) {
+    this._source = source
+    this._drawStyle = style
+    if (this._interactions.DrawPoint) {
+      this.getMap().removeInteraction(this._interactions.DrawPoint)
+      this._interactions.DrawPoint.source_ = source
+      this._interactions.DrawPoint.getOverlay().setStyle(style)
+      this.getMap().addInteraction(this._interactions.DrawPoint)
+    }
+    if (this._interactions.DrawLine) {
+      this.getMap().removeInteraction(this._interactions.DrawLine)
+      this._interactions.DrawLine.source_ = source
+      this._interactions.DrawLine.getOverlay().setStyle(style)
+      this.getMap().addInteraction(this._interactions.DrawLine)
+    }
+    if (this._interactions.DrawPolygon) {
+      this.getMap().removeInteraction(this._interactions.DrawPolygon)
+      this._interactions.DrawPolygon.source_ = source
+      this._interactions.DrawPolygon.getOverlay().setStyle(style)
+      this.getMap().addInteraction(this._interactions.DrawPolygon)
+    }
+    if (this._interactions.DrawRegular) {
+      this.getMap().removeInteraction(this._interactions.DrawRegular)
+      this._interactions.DrawRegular.source_ = source
+      this._interactions.DrawRegular.overlayLayer_.setStyle(style)
+      this.getMap().addInteraction(this._interactions.DrawRegular)
     }
   }
 
@@ -166,6 +196,7 @@ const editBarExt = class EditBarExt extends Bar {
       } else {
         this._interactions.Select = new Select({
           condition: click,
+          layers: this._layers,
           style: this._selectStyle
         })
       }

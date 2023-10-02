@@ -36,6 +36,13 @@ export default function MapIoPanel (context) {
   let ALayer, BLayer, resultLayer, expectedLayer
   let editBar
 
+  const state = new Proxy({
+    inputType: 'A',
+    outputType: 'Result'
+  }, {
+    // TODO: use this to update UI
+  })
+
   this.init = () => {
     initMap()
 
@@ -51,7 +58,9 @@ export default function MapIoPanel (context) {
     const radInputTypes = document.querySelectorAll('input[type="radio"][name="inputtype"]')
     for (const radInputType of radInputTypes) {
       radInputType.addEventListener('change', (e) => {
-        switchInput(e.currentTarget.value)
+        const newInputType = e.currentTarget.value
+        state.inputType = newInputType
+        switchInput(newInputType)
       })
     }
     const btnClearInput = document.getElementById('btnClearInput')
@@ -65,7 +74,9 @@ export default function MapIoPanel (context) {
     const radOutputTypes = document.querySelectorAll('input[type="radio"][name="outputtype"]')
     for (const radOutputType of radOutputTypes) {
       radOutputType.addEventListener('change', (e) => {
-        switchOutput(e.currentTarget.value)
+        const newOutputType = e.currentTarget.value
+        state.outputType = newOutputType
+        switchOutput(newOutputType)
       })
     }
     const btnClearOutput = document.getElementById('btnClearOutput')
@@ -146,7 +157,11 @@ export default function MapIoPanel (context) {
     self.map = map // For debug
 
     editBar = new EditBarExt({
+      interactions: {
+        Info: false
+      },
       source: ALayer.getSource(),
+      layers: filterLayers,
       drawStyle: getDefaultStyle('A'),
       selectStyle: getEditingStyleFunction(),
       modifyStyle: getEditingStyleFunction()
@@ -157,6 +172,14 @@ export default function MapIoPanel (context) {
     map.getView().fit([-10, -10, 416, 416])
 
     wktFormat = new WKT()
+  }
+
+  const filterLayers = (layer) => {
+    if (state.inputType === 'A') {
+      return layer === ALayer
+    } else if (state.inputType === 'B') {
+      return layer === BLayer
+    }
   }
 
   const getDefaultStyle = (type) => {
@@ -346,15 +369,6 @@ export default function MapIoPanel (context) {
     switchFixedScale(selPrecisionModel.value)
   }
 
-  const getInputType = () => {
-    if (document.getElementById('radA').checked) {
-      return 'A'
-    } else if (document.getElementById('radB').checked) {
-      return 'B'
-    }
-    return 'A'
-  }
-
   this.setOutputType = (strtype) => {
     if (strtype === 'result') {
       document.getElementById('radResult').checked = true
@@ -372,9 +386,11 @@ export default function MapIoPanel (context) {
     if (type === 'A') {
       txtInputA.style.display = 'block'
       txtInputB.style.display = 'none'
+      editBar.setDrawSourceAndStyle(ALayer.getSource(), getDefaultStyle('A'))
     } else if (type === 'B') {
       txtInputA.style.display = 'none'
       txtInputB.style.display = 'block'
+      editBar.setDrawSourceAndStyle(BLayer.getSource(), getDefaultStyle('B'))
     }
   }
 
@@ -405,7 +421,7 @@ export default function MapIoPanel (context) {
 
   this.loadInput = (wkt, type) => {
     if (isEmpty(type)) {
-      type = getInputType()
+      type = state.inputType
     }
     const txtInputA = document.getElementById('txtInputA')
     const txtInputB = document.getElementById('txtInputB')
@@ -454,11 +470,11 @@ export default function MapIoPanel (context) {
   }
 
   this.clearInput = (isAll) => {
-    if ((getInputType() === 'A' || isAll)) {
+    if ((state.inputType === 'A' || isAll)) {
       ALayer.getSource().clear()
       document.getElementById('txtInputA').value = ''
     }
-    if ((getInputType() === 'B' || isAll)) {
+    if ((state.inputType === 'B' || isAll)) {
       BLayer.getSource().clear()
       document.getElementById('txtInputB').value = ''
     }
