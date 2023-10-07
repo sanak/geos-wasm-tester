@@ -1,3 +1,8 @@
+body {
+  font-family: "Helvetica Neue", Arial, Helvetica, sans-serif;
+  font-size: 80%;
+}
+
 .main {
   display: grid;
   grid-template-areas: "top top" "left right" "bottom bottom";
@@ -97,6 +102,8 @@ option.binary {
   flex: 1;
   max-height: 470px;
   border: 1px solid #ccc;
+  font-family: initial;
+  font-size: initial;
 }
 .statusbar {
   height: 30px;

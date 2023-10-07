@@ -7,17 +7,12 @@
     <title>GEOS WASM Tester</title>
     <link rel="stylesheet" href="node_modules/ol/ol.css">
     <link rel="stylesheet" href="node_modules/ol-ext/dist/ol-ext.css">
-    <!-- <link rel="stylesheet" href="./lib/ol2/examples/style.css" type="text/css" /> -->
+    <link rel="stylesheet" href="./src/lib/ol-ext/control/EditBarExt.css" type="text/css">
     <link rel="stylesheet" href="style.css" type="text/css">
     <script src="src/main.js" type="module"></script>
   </head>
   <body>
     <h1 id="title">GEOS WASM Tester</h1>
-
-    <div id="tags"></div>
-
-    <p id="shortdesc">Demonstrate GEOS WASM</p>
-
     <div class="main">
       <div class="top">
         <div>
@@ -34,16 +29,7 @@
       </div>
       <div class="left">
         <div class="operation">
-          <label for="selOperation">
-            Operation
-            <!--
-            (
-              <img src="./images/unary-geom-function.png"/><span style="color:blue">:unary</span>
-              /
-              <img src="./images/binary-geom-function.png"/><span style="color:red">:binary</span>
-            )
-            -->
-          </label>
+          <label for="selOperation">Operation</label>
           <select size="14" name="selOperation" id="selOperation">
             <optgroup label="Geometry">
               <option value="GEOSGeom_clone" class="unary">clone</option>

@@ -37,7 +37,7 @@ const editBarExt = class EditBarExt extends Bar {
 
     // New bar
     super({
-      className: (options.className ? options.className + ' ' : '') + 'ol-editbar',
+      className: (options.className ? options.className + ' ' : '') + 'ol-editbar-ext',
       toggleOne: true,
       target: options.target
     })
