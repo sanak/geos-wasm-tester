@@ -41,10 +41,10 @@ body {
   display: inline-block;
   width: 5.6em;
 }
-#selTestXml {
+#test-xml-select {
   min-width: auto;
 }
-#selTestCase {
+#test-case-select {
   min-width: auto;
 }
 
@@ -69,10 +69,10 @@ option.binary {
   background-repeat: no-repeat;
   color: red;
 }
-#selOperation {
+#operation-select {
   width: 100%;
 }
-.method #lblMethod {
+.method #method-span {
   color: blue;
   font-size: 1.1em;
 }
@@ -105,28 +105,28 @@ option.binary {
   font-family: initial;
   font-size: initial;
 }
-.statusbar {
+.status-bar {
   height: 30px;
   display: flex;
   align-items: center;
 }
-.statusbar > div.display {
+.status-bar > div.display {
   flex: 1;
   text-align: center;
 }
-.statusbar > div.pm {
+.status-bar > div.pm {
   flex: 2;
   display: flex;
   align-items: center;
 }
-.statusbar > div.pm > div {
+.status-bar > div.pm > div {
   margin-left: 0.3em;
 }
-#txtFixedScale {
+#fixed-scale-text {
   width: 50px;
   text-align: right;
 }
-#divMousePosition {
+#mouse-position-div {
   flex: 3;
   text-align: right;
 }
@@ -135,46 +135,38 @@ option.binary {
 {
   margin-top: 2px;
 }
-#iopanel {
-  height: 150px;
-}
 .io {
   display: flex;
 }
-.iolabel {
+.io-labels {
   min-width: 110px;
   height: 75px;
 }
-.iotext {
+.io-texts {
   flex: 1;
   display: flex;
 }
-.iobutton {
+.io-buttons {
   min-width: 60px;
   vertical-align: top;
   text-align: center;
 }
-#lblA {
+#a-label {
   color: blue;
 }
-#lblB {
+#b-label {
   color: red;
 }
-.iotext > textarea {
+.io-texts > textarea {
   font-size: 0.85em;
   flex: 1;
   min-height: 75px;
 }
-#lblResult {
+#result-label {
   color: #acd62b;
 }
-#lblExpected {
+#expected-label {
   color: #2bd656;
-}
-#txtOutput {
-  font-size: 0.85em;
-  flex: 1;
-  min-height: 75px;
 }
 
 p {
@@ -198,7 +190,7 @@ p {
   .operation {
     display: inline-flex;
   }
-  #selOperation {
+  #operation-select {
     width: 300px;
     margin-left: 4px;
   }

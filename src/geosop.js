@@ -44,8 +44,8 @@ export default function GeosOp (context) {
     // geos.Module._free(wktPtr)
     const geom = geos.GEOSWKTReader_read(reader, wkt)
 
-    if (document.getElementById('selPrecisionModel').value === 'FIXED') {
-      let scale = document.getElementById('txtFixedScale').value
+    if (document.getElementById('precision-model-select').value === 'FIXED') {
+      let scale = document.getElementById('fixed-scale-text').value
       if (!isNaN(scale)) {
         scale = parseFloat(scale)
         const fixedGeom = geos.GEOSGeom_setPrecision(geom, scale, 0)
@@ -70,8 +70,8 @@ export default function GeosOp (context) {
   }
 
   const getGeometryArguments = (fncname, isBinary) => {
-    const wktA = document.getElementById('txtInputA').value
-    const wktB = document.getElementById('txtInputB').value
+    const wktA = document.getElementById('input-a-text').value
+    const wktB = document.getElementById('input-b-text').value
     if (isEmpty(wktA)) {
       throw new Error('all operation needs Geometry A.')
     }
@@ -89,8 +89,8 @@ export default function GeosOp (context) {
   }
 
   const getArgumentValue = (idx, type, min, max) => {
-    let value = document.getElementById('txtArg' + idx).value
-    const label = document.getElementById('lblArg' + idx).innerText
+    let value = document.getElementById(`arg${idx}-text`).value
+    const label = document.getElementById(`arg${idx}-label`).innerText
     if (type === 'int' || type === 'float') {
       if (isNaN(value)) {
         throw new Error(`${label} value must be number.`)
@@ -110,8 +110,8 @@ export default function GeosOp (context) {
   }
 
   const updateOutput = (result, expected, type) => {
-    const txtResult = document.getElementById('txtResult')
-    const txtExpected = document.getElementById('txtExpected')
+    const resultText = document.getElementById('result-text')
+    const expectedText = document.getElementById('expected-text')
     switch (type) {
       case 'boolean':
         switch (result) {
@@ -142,19 +142,19 @@ export default function GeosOp (context) {
         }
         break
     }
-    txtResult.value = result
-    txtExpected.value = expected
+    resultText.value = result
+    expectedText.value = expected
     if (!isEmpty(result) && !isEmpty(expected)) {
       if (result !== expected) {
-        txtResult.style.backgroundColor = '#ffcccc'
-        txtExpected.style.backgroundColor = '#ffcccc'
+        resultText.style.backgroundColor = '#ffcccc'
+        expectedText.style.backgroundColor = '#ffcccc'
       } else {
-        txtResult.style.backgroundColor = '#ccffcc'
-        txtExpected.style.backgroundColor = '#ccffcc'
+        resultText.style.backgroundColor = '#ccffcc'
+        expectedText.style.backgroundColor = '#ccffcc'
       }
     } else {
-      txtResult.style.backgroundColor = '#ffffff'
-      txtExpected.style.backgroundColor = '#ffffff'
+      resultText.style.backgroundColor = '#ffffff'
+      expectedText.style.backgroundColor = '#ffffff'
     }
     if (type === 'wkt') {
       context.mapIoPanel.loadOutput(result, expected)
@@ -164,16 +164,16 @@ export default function GeosOp (context) {
   this.compute = (expected) => {
     context.mapIoPanel.clearOutput()
 
-    const radExpected = document.getElementById('radExpected')
+    const expectedRadio = document.getElementById('expected-radio')
     if (!isEmpty(expected)) {
-      radExpected.disabled = false
-      context.mapIoPanel.setOutputType('expected')
+      expectedRadio.disabled = false
+      context.mapIoPanel.setOutputType('Expected')
     } else {
-      radExpected.disabled = true
-      context.mapIoPanel.setOutputType('result')
+      expectedRadio.disabled = true
+      context.mapIoPanel.setOutputType('Result')
     }
 
-    const opts = document.getElementById('selOperation').options
+    const opts = document.getElementById('operation-select').options
     const opname = opts[opts.selectedIndex].text
     const fncname = opts[opts.selectedIndex].value
 

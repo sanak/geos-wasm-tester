@@ -46,41 +46,41 @@ export default function MapIoPanel (context) {
   this.init = () => {
     initMap()
 
-    const chkDisplayInput = document.getElementById('chkDisplayInput')
-    chkDisplayInput.addEventListener('change', (e) => {
+    const displayInputCheckbox = document.getElementById('display-input-checkbox')
+    displayInputCheckbox.addEventListener('change', (e) => {
       displayInputGeometries(e.currentTarget.checked)
     })
-    const selPrecisionModel = document.getElementById('selPrecisionModel')
-    selPrecisionModel.addEventListener('change', (e) => {
+    const precisionModelSelect = document.getElementById('precision-model-select')
+    precisionModelSelect.addEventListener('change', (e) => {
       switchFixedScale(e.currentTarget.value)
     })
 
-    const radInputTypes = document.querySelectorAll('input[type="radio"][name="inputtype"]')
-    for (const radInputType of radInputTypes) {
-      radInputType.addEventListener('change', (e) => {
+    const inputTypeRadios = document.querySelectorAll('input[type="radio"][name="input-type"]')
+    for (const inputTypeRadio of inputTypeRadios) {
+      inputTypeRadio.addEventListener('change', (e) => {
         const newInputType = e.currentTarget.value
         state.inputType = newInputType
         switchInput(newInputType)
       })
     }
-    const btnClearInput = document.getElementById('btnClearInput')
-    btnClearInput.addEventListener('click', () => {
+    const clearInputButton = document.getElementById('clear-input-button')
+    clearInputButton.addEventListener('click', () => {
       self.clearInput()
     })
-    const btnLoadInput = document.getElementById('btnLoadInput')
-    btnLoadInput.addEventListener('click', () => {
+    const loadInputButton = document.getElementById('load-input-button')
+    loadInputButton.addEventListener('click', () => {
       self.loadInput()
     })
-    const radOutputTypes = document.querySelectorAll('input[type="radio"][name="outputtype"]')
-    for (const radOutputType of radOutputTypes) {
-      radOutputType.addEventListener('change', (e) => {
+    const outputTypeRadios = document.querySelectorAll('input[type="radio"][name="output-type"]')
+    for (const outputTypeRadio of outputTypeRadios) {
+      outputTypeRadio.addEventListener('change', (e) => {
         const newOutputType = e.currentTarget.value
         state.outputType = newOutputType
         switchOutput(newOutputType)
       })
     }
-    const btnClearOutput = document.getElementById('btnClearOutput')
-    btnClearOutput.addEventListener('click', () => {
+    const clearOutputButton = document.getElementById('clear-output-button')
+    clearOutputButton.addEventListener('click', () => {
       self.clearOutput()
     })
     // Switch default input
@@ -126,7 +126,7 @@ export default function MapIoPanel (context) {
           coordinateFormat: createStringXY(4),
           projection: 'EPSG:3857',
           className: 'custom-mouse-position',
-          target: document.getElementById('divMousePosition')
+          target: document.getElementById('mouse-position-div')
         })
       ]),
       layers: [
@@ -349,47 +349,47 @@ export default function MapIoPanel (context) {
 
   // TODO: move to IOPanel
   const switchFixedScale = (selected) => {
-    const divFixedScale = document.getElementById('divFixedScale')
+    const fixedScaleDiv = document.getElementById('fixed-scale-div')
     if (selected === 'FIXED') {
-      divFixedScale.style.display = 'block'
+      fixedScaleDiv.style.display = 'block'
     } else {
-      divFixedScale.style.display = 'none'
+      fixedScaleDiv.style.display = 'none'
     }
   }
 
   this.updatePrecisionModel = (type, scale) => {
-    const selPrecisionModel = document.getElementById('selPrecisionModel')
+    const precisionModelSelect = document.getElementById('precision-model-select')
     if (type === 'FLOATING' || type === 'FLOATING_SINGLE') {
-      selPrecisionModel.value = type
+      precisionModelSelect.value = type
     } else if (!isEmpty(scale)) {
-      selPrecisionModel.value = 'FIXED'
-      const txtFixedScale = document.getElementById('txtFixedScale')
-      txtFixedScale.value = scale
+      precisionModelSelect.value = 'FIXED'
+      const fixedScaleText = document.getElementById('fixed-scale-text')
+      fixedScaleText.value = scale
     }
-    switchFixedScale(selPrecisionModel.value)
+    switchFixedScale(precisionModelSelect.value)
   }
 
-  this.setOutputType = (strtype) => {
-    if (strtype === 'result') {
-      document.getElementById('radResult').checked = true
-      switchOutput('result')
-    } else if (strtype === 'expected') {
-      document.getElementById('radExpected').checked = true
-      switchOutput('expected')
+  this.setOutputType = (type) => {
+    if (type === 'Result') {
+      document.getElementById('result-radio').checked = true
+      switchOutput('Result')
+    } else if (type === 'Expected') {
+      document.getElementById('expected-radio').checked = true
+      switchOutput('Expected')
     }
   }
 
   const switchInput = (type) => {
-    const txtInputA = document.getElementById('txtInputA')
-    const txtInputB = document.getElementById('txtInputB')
+    const inputAText = document.getElementById('input-a-text')
+    const inputBText = document.getElementById('input-b-text')
     // TODO:
     if (type === 'A') {
-      txtInputA.style.display = 'block'
-      txtInputB.style.display = 'none'
+      inputAText.style.display = 'block'
+      inputBText.style.display = 'none'
       editBar.setDrawSourceAndStyle(ALayer.getSource(), getDefaultStyle('A'))
     } else if (type === 'B') {
-      txtInputA.style.display = 'none'
-      txtInputB.style.display = 'block'
+      inputAText.style.display = 'none'
+      inputBText.style.display = 'block'
       editBar.setDrawSourceAndStyle(BLayer.getSource(), getDefaultStyle('B'))
     }
   }
@@ -400,22 +400,22 @@ export default function MapIoPanel (context) {
     let wkt = ''
     if (type === 'A') {
       wkt = featureToWkt(features)
-      document.getElementById('txtInputA').value = wkt
+      document.getElementById('input-a-text').value = wkt
     } else if (type === 'B') {
       wkt = featureToWkt(features)
-      document.getElementById('txtInputB').value = wkt
+      document.getElementById('input-b-text').value = wkt
     }
   }
 
   const switchOutput = (type) => {
-    const txtResult = document.getElementById('txtResult')
-    const txtExpected = document.getElementById('txtExpected')
+    const resultText = document.getElementById('result-text')
+    const expectedText = document.getElementById('expected-text')
     if (type === 'Result') {
-      txtResult.style.display = 'block'
-      txtExpected.style.display = 'none'
+      resultText.style.display = 'block'
+      expectedText.style.display = 'none'
     } else if (type === 'Expected') {
-      txtResult.style.display = 'none'
-      txtExpected.style.display = 'block'
+      resultText.style.display = 'none'
+      expectedText.style.display = 'block'
     }
   }
 
@@ -423,19 +423,19 @@ export default function MapIoPanel (context) {
     if (isEmpty(type)) {
       type = state.inputType
     }
-    const txtInputA = document.getElementById('txtInputA')
-    const txtInputB = document.getElementById('txtInputB')
+    const inputAText = document.getElementById('input-a-text')
+    const inputBText = document.getElementById('input-b-text')
     if (type === 'A') {
       if (isEmpty(wkt)) {
-        wkt = txtInputA.value
+        wkt = inputAText.value
       } else {
-        txtInputA.value = wkt
+        inputAText.value = wkt
       }
     } else if (type === 'B') {
       if (isEmpty(wkt)) {
-        wkt = txtInputB.value
+        wkt = inputBText.value
       } else {
-        txtInputB.value = wkt
+        inputBText.value = wkt
       }
     }
     const feature = featureFromWkt(wkt)
@@ -472,22 +472,22 @@ export default function MapIoPanel (context) {
   this.clearInput = (isAll) => {
     if ((state.inputType === 'A' || isAll)) {
       ALayer.getSource().clear()
-      document.getElementById('txtInputA').value = ''
+      document.getElementById('input-a-text').value = ''
     }
     if ((state.inputType === 'B' || isAll)) {
       BLayer.getSource().clear()
-      document.getElementById('txtInputB').value = ''
+      document.getElementById('input-b-text').value = ''
     }
   }
 
   this.clearOutput = () => {
     resultLayer.getSource().clear()
     expectedLayer.getSource().clear()
-    const txtResult = document.getElementById('txtResult')
-    const txtExpected = document.getElementById('txtExpected')
-    txtResult.value = ''
-    txtExpected.value = ''
-    txtResult.style.backgroundColor = '#ffffff'
-    txtExpected.style.backgroundColor = '#ffffff'
+    const resultText = document.getElementById('result-text')
+    const expectedText = document.getElementById('expected-text')
+    resultText.value = ''
+    expectedText.value = ''
+    resultText.style.backgroundColor = '#ffffff'
+    expectedText.style.backgroundColor = '#ffffff'
   }
 }

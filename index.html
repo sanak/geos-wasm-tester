@@ -16,21 +16,21 @@
     <div class="main">
       <div class="top">
         <div>
-          <label for="selTestXml">TestXml</label>
-          <select name="selTestXml" id="selTestXml"></select>
-          <input type="button" id="btnLoadTestXml" value="Load"/>
+          <label for="test-xml-select">TestXml</label>
+          <select id="test-xml-select"></select>
+          <input type="button" id="load-test-xml-button" value="Load"/>
         </div>
         <div>
-          <label for="selTestCase">TestCase</label>
-          <select name="selTestCase" id="selTestCase">
+          <label for="test-case-select">TestCase</label>
+          <select id="test-case-select">
             <option selected="selected">---&nbsp;Select Below&nbsp;---</option>
           </select>
         </div>
       </div>
       <div class="left">
         <div class="operation">
-          <label for="selOperation">Operation</label>
-          <select size="14" name="selOperation" id="selOperation">
+          <label for="operation-select">Operation</label>
+          <select size="14" id="operation-select">
             <optgroup label="Geometry">
               <option value="GEOSGeom_clone" class="unary">clone</option>
               <option value="GEOSEnvelope" class="unary" selected="selected">envelope</option>
@@ -129,109 +129,102 @@
           </select>
         </div>
         <div class="method">
-          <span id="lblMethod"></span>
+          <span id="method-span"></span>
         </div>
         <div class="args">
-          <div class="arg" id="divArg1">
-            <label for="txtArg1" id="lblArg1">Geometry</label>
-            <input type="text" id="txtArg1" />
+          <div class="arg" id="arg1-div">
+            <label for="arg1-text" id="arg1-label">Geometry</label><input type="text" id="arg1-text" />
           </div>
-          <div class="arg" id="divArg2">
-            <label for="txtArg2" id="lblArg2"></label>
-            <input type="text" id="txtArg2" />
+          <div class="arg" id="arg2-div" style="display:none">
+            <label for="arg2-text" id="arg2-label"></label><input type="text" id="arg2-text" />
           </div>
-          <div class="arg" id="divArg3">
-            <label for="txtArg3" id="lblArg3"></label>
-            <input type="text" id="txtArg3" />
+          <div class="arg" id="arg3-div" style="display:none">
+            <label for="arg3-text" id="arg3-label"></label><input type="text" id="arg3-text" />
           </div>
-          <div class="arg" id="divArg4">
-            <label for="txtArg4" id="lblArg4"></label>
-            <input type="text" id="txtArg4" />
+          <div class="arg" id="arg4-div" style="display:none">
+            <label for="arg4-text" id="arg4-label"></label><input type="text" id="arg4-text" />
           </div>
-          <div class="arg" id="divArg5">
-            <label for="txtArg5" id="lblArg5"></label>
-            <input type="text" id="txtArg5" />
+          <div class="arg" id="arg5-div" style="display:none">
+            <label for="arg5-text" id="arg5-label"></label><input type="text" id="arg5-text" />
           </div>
-          <div class="arg" id="divArg6">
-            <label for="txtArg6" id="lblArg6"></label>
-            <input type="text" id="txtArg6" />
+          <div class="arg" id="arg6-div" style="display:none">
+            <label for="arg6-text" id="arg6-label"></label><input type="text" id="arg6-text" />
           </div>
-          <div class="arg" id="divArg7">
-            <label for="txtArg7" id="lblArg7"></label>
-            <input type="text" id="txtArg7" />
+          <div class="arg" id="arg7-div" style="display:none">
+            <label for="arg7-text" id="arg7-label"></label><input type="text" id="arg7-text" />
           </div>
         </div>
         <div class="compute">
-          <input type="button" id="btnCompute" value="Compute" />
+          <input type="button" id="compute-button" value="Compute" />
         </div>
       </div>
       <div class="right">
         <div id="map"></div>
-        <div class="statusbar">
+        <div class="status-bar">
           <div class="display">
-            <input type="checkbox" id="chkDisplayInput" checked="checked" />
+            <input type="checkbox" id="display-input-checkbox" checked="checked" />
             <img src="./assets/images/testbuilder/BinaryGeomFunction.png" title="Display Input Geometries"/>
           </div>
           <div class="pm">
             <div>
-              <label for="selPrecisionModel">PM</label>
-              <select name="selPrecisionModel" id="selPrecisionModel">
+              <label for="precision-model-select">PM</label>
+              <select id="precision-model-select">
                 <option value="FLOATING" selected="selected">Floating</option>
                 <option value="FLOATING_SINGLE">Floating-Single</option>
                 <option value="FIXED">Fixed</option>
               </select>
             </div>
-            <div id="divFixedScale" style="display:none">
-              <label for="txtFixedScale" id="lblFixedScale">Scale</label>
-              <input type="text" id="txtFixedScale" value="1.0" />
+            <div id="fixed-scale-div" style="display:none">
+              <label for="fixed-scale-text">Scale</label>
+              <input type="text" id="fixed-scale-text" value="1.0" />
             </div>
           </div>
-          <div id="divMousePosition"></div>
+          <div id="mouse-position-div"></div>
         </div>
       </div>
       <div class="bottom">
         <div class="io">
-          <div class="iolabel">
+          <div class="io-labels">
             <div>
-              <input type="radio" name="inputtype" id="radA" value="A" checked="checked" />
-              <label for="radA" id="lblA">A</label>
+              <input type="radio" name="input-type" id="a-radio" value="A" checked="checked" />
+              <label for="a-radio" id="a-label">A</label>
             </div>
             <div>
-              <input type="radio" name="inputtype" id="radB" value="B" />
-              <label for="radB" id="lblB">B</label>
+              <input type="radio" name="input-type" id="b-radio" value="B" />
+              <label for="b-radio" id="b-label">B</label>
             </div>
           </div>
-          <div class="iotext">
-            <textarea id="txtInputA"></textarea>
-            <textarea id="txtInputB" style="display:none"></textarea>
+          <div class="io-texts">
+            <textarea id="input-a-text"></textarea>
+            <textarea id="input-b-text" style="display:none"></textarea>
           </div>
-          <div class="iobutton">
+          <div class="io-buttons">
             <div>
-              <input type="button" id="btnClearInput" value="Clear" />
+              <input type="button" id="clear-input-button" value="Clear" />
             </div>
             <div>
-              <input type="button" id="btnLoadInput" value="Load" />
+              <input type="button" id="load-input-button" value="Load" />
             </div>
           </div>
         </div>
         <div class="io">
-          <div class="iolabel">
+          <div class="io-labels">
             <div>
-              <input type="radio" name="outputtype" id="radResult" value="Result" checked="checked" />
-              <label for="radResult" id="lblResult">Result</label>
+              <input type="radio" name="output-type" id="result-radio" value="Result" checked="checked" />
+              <label for="result-radio" id="result-label">Result</label>
             </div>
             <div>
-              <input type="radio" name="outputtype" id="radExpected" value="Expected" />
-              <label for="radExpected" id="lblExpected">Expected</label>
+              <input type="radio" name="output-type" id="expected-radio" value="Expected" />
+              <label for="expected-radio" id="expected-label">Expected</label>
             </div>
           </div>
-          <div class="iotext">
-            <textarea id="txtResult"></textarea>
-            <textarea id="txtExpected" style="display:none"></textarea>
+          <div class="io-texts">
+            <textarea id="result-text"></textarea>
+            <textarea id="expected-text" style="display:none"></textarea>
           </div>
-          <div class="iobutton">
+          <div class="io-buttons">
             <div>
-              <input type="button" id="btnClearOutput" value="Clear" />
+              <input type="button" id="clear-output-button" value="Clear" />
             </div>
           </div>
         </div>
