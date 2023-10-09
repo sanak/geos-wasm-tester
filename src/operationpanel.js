@@ -4,12 +4,12 @@ export default function OperationPanel (context) {
   const self = this
 
   this.init = () => {
-    const selOperation = document.getElementById('selOperation')
-    selOperation.addEventListener('change', (e) => {
+    const operationSelect = document.getElementById('operation-select')
+    operationSelect.addEventListener('change', (e) => {
       self.updateOperation(e.currentTarget.selectedOptions[0].text)
     })
-    const btnCompute = document.getElementById('btnCompute')
-    btnCompute.addEventListener('click', () => {
+    const computeButton = document.getElementById('compute-button')
+    computeButton.addEventListener('click', () => {
       context.geosOp.compute()
     })
     // Select default operation
@@ -18,28 +18,28 @@ export default function OperationPanel (context) {
   }
 
   const setArgument = (idx, label, value, visible, disabled) => {
-    const divArg = document.getElementById('divArg' + idx)
-    const lblArg = document.getElementById('lblArg' + idx)
-    const txtArg = document.getElementById('txtArg' + idx)
-    divArg.style.display = visible ? 'flex' : 'none'
-    lblArg.innerText = label
-    txtArg.value = value
-    txtArg.disabled = disabled
+    const argDiv = document.getElementById(`arg${idx}-div`)
+    const argLabel = document.getElementById(`arg${idx}-label`)
+    const argText = document.getElementById(`arg${idx}-text`)
+    argDiv.style.display = visible ? 'flex' : 'none'
+    argLabel.innerText = label
+    argText.value = value
+    argText.disabled = disabled
   }
 
   const setArgumentValue = (idx, value) => {
     if (!isEmpty(value)) {
-      const txtArg = document.getElementById('txtArg' + idx)
-      txtArg.value = value
+      const argText = document.getElementById(`arg${idx}-text`)
+      argText.value = value
     }
   }
 
   this.updateOperation = (opname, arg1, arg2, arg3, arg4, arg5, arg6, arg7) => {
-    const selOperation = document.getElementById('selOperation')
-    let fncName = selOperation.value
-    if (selOperation.selectedIndex >= 0 &&
-        selOperation.selectedOptions[0].text.toLowerCase() !== opname.toLowerCase()) {
-      const optsOperation = selOperation.options
+    const operationSelect = document.getElementById('operation-select')
+    let fncName = operationSelect.value
+    if (operationSelect.selectedIndex >= 0 &&
+      operationSelect.selectedOptions[0].text.toLowerCase() !== opname.toLowerCase()) {
+      const optsOperation = operationSelect.options
       for (let i = 0; i < optsOperation.length; i++) {
         if (optsOperation[i].text.toLowerCase() === opname.toLowerCase()) {
           optsOperation[i].selected = true
@@ -48,8 +48,8 @@ export default function OperationPanel (context) {
         }
       }
     }
-    const lblMethod = document.getElementById('lblMethod')
-    lblMethod.innerText = fncName
+    const methodSpan = document.getElementById('method-span')
+    methodSpan.innerText = fncName
     setArgument(1, 'Geometry', 'A', true, true)
     setArgument(2, '', '', false, true)
     setArgument(3, '', '', false, true)

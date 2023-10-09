@@ -5,6 +5,8 @@ export const isEmpty = (value) => {
     case 'object':
       if (value == null) {
         return true
+      } else if (Array.isArray(value)) {
+        return value.length === 0
       }
       break
     case 'string':

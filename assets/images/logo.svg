@@ -1,0 +1,23 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100" height="100" viewBox="0 0 100 100"
+  xmlns="http://www.w3.org/2000/svg" 
+  xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <g id="layer" transform="translate(50 50)">
+      <g transform="scale(0.7071 0.5)">
+        <g transform="translate(-50 -50)">
+          <rect width="100" height="100" rx="15" transform="rotate(45 50 50)" />
+        </g>
+      </g>
+    </g>
+  </defs>
+  <g transform="translate(0 10)" style="fill:#ffff64;fill-opacity:0.8;stroke:#78b400;stroke-opacity:1;stroke-width:7;stroke-dasharray:none">
+    <use xlink:href="#layer"/>
+  </g>
+  <g style="fill:#ffc8c8;fill-opacity:0.8;stroke:#ff0000;stroke-opacity:1;stroke-width:7;stroke-dasharray:none">
+    <use xlink:href="#layer"/>
+  </g>
+  <g transform="translate(0 -10)" style="fill:#c8c8ff;fill-opacity:0.8;stroke:#0000ff;stroke-opacity:1;stroke-width:7;stroke-dasharray:none">
+    <use xlink:href="#layer"/>
+  </g>
+</svg>

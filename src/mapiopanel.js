@@ -1,149 +1,295 @@
+import ImageLayer from 'ol/layer/Image.js'
+import Map from 'ol/Map.js'
+import MousePosition from 'ol/control/MousePosition.js'
+import View from 'ol/View.js'
+import { WKT } from 'ol/format.js'
+import {
+  // OSM,
+  Vector as VectorSource
+} from 'ol/source.js'
+import { get as getProjection } from 'ol/proj.js'
+import Static from 'ol/source/ImageStatic.js'
+import {
+  // Tile as TileLayer,
+  Vector as VectorLayer
+} from 'ol/layer.js'
+import { createStringXY } from 'ol/coordinate.js'
+import { defaults as defaultControls } from 'ol/control.js'
+import {
+  buffer,
+  extend,
+  // getCenter,
+  getSize
+} from 'ol/extent.js'
+import CircleStyle from 'ol/style/Circle.js'
+import Fill from 'ol/style/Fill.js'
+import Stroke from 'ol/style/Stroke.js'
+import Style from 'ol/style/Style.js'
+import EditBarExt from './lib/ol-ext/control/EditBarExt.js'
 import { isEmpty } from './util.js'
 
 export default function MapIoPanel (context) {
   const self = this
-  const OpenLayers = window.OpenLayers
 
-  self.featureA = null
-  self.featureB = null
+  let map
+  let wktFormat
+  let ALayer, BLayer, resultLayer, expectedLayer
+  let editBar
 
-  let map, wktfmt, layerInput, layerOutput
-  let featureResult, featureExpected
+  const state = new Proxy({
+    inputType: 'A',
+    outputType: 'Result'
+  }, {
+    // TODO: use this to update UI
+  })
 
   this.init = () => {
     initMap()
 
-    const chkDisplayInput = document.getElementById('chkDisplayInput')
-    chkDisplayInput.addEventListener('change', (e) => {
+    const displayInputCheckbox = document.getElementById('display-input-checkbox')
+    displayInputCheckbox.addEventListener('change', (e) => {
       displayInputGeometries(e.currentTarget.checked)
     })
-    const selPrecisionModel = document.getElementById('selPrecisionModel')
-    selPrecisionModel.addEventListener('change', (e) => {
+    const precisionModelSelect = document.getElementById('precision-model-select')
+    precisionModelSelect.addEventListener('change', (e) => {
       switchFixedScale(e.currentTarget.value)
     })
 
-    const radInputTypes = document.querySelectorAll('input[type="radio"][name="inputtype"]')
-    for (const radInputType of radInputTypes) {
-      radInputType.addEventListener('change', (e) => {
-        switchInput(e.currentTarget.value)
+    const inputTypeRadios = document.querySelectorAll('input[type="radio"][name="input-type"]')
+    for (const inputTypeRadio of inputTypeRadios) {
+      inputTypeRadio.addEventListener('change', (e) => {
+        const newInputType = e.currentTarget.value
+        state.inputType = newInputType
+        switchInput(newInputType)
       })
     }
-    const btnClearInput = document.getElementById('btnClearInput')
-    btnClearInput.addEventListener('click', () => {
+    const clearInputButton = document.getElementById('clear-input-button')
+    clearInputButton.addEventListener('click', () => {
       self.clearInput()
     })
-    const btnLoadInput = document.getElementById('btnLoadInput')
-    btnLoadInput.addEventListener('click', () => {
+    const loadInputButton = document.getElementById('load-input-button')
+    loadInputButton.addEventListener('click', () => {
       self.loadInput()
     })
-    const radOutputTypes = document.querySelectorAll('input[type="radio"][name="outputtype"]')
-    for (const radOutputType of radOutputTypes) {
-      radOutputType.addEventListener('change', (e) => {
-        switchOutput(e.currentTarget.value)
+    const outputTypeRadios = document.querySelectorAll('input[type="radio"][name="output-type"]')
+    for (const outputTypeRadio of outputTypeRadios) {
+      outputTypeRadio.addEventListener('change', (e) => {
+        const newOutputType = e.currentTarget.value
+        state.outputType = newOutputType
+        switchOutput(newOutputType)
       })
     }
-    const btnClearOutput = document.getElementById('btnClearOutput')
-    btnClearOutput.addEventListener('click', () => {
+    const clearOutputButton = document.getElementById('clear-output-button')
+    clearOutputButton.addEventListener('click', () => {
       self.clearOutput()
     })
     // Switch default input
-    switchInput('a')
+    switchInput('A')
 
     return self
   }
 
   const initMap = () => {
-    const options = {
-      units: 'm',
-      maxExtent: new OpenLayers.Bounds(
-        -100000000000000000000,
-        -100000000000000000000,
-        100000000000000000000,
-        100000000000000000000
-      ), // limit of number 'e' format
-      controls: [
-        new OpenLayers.Control.PanZoomBar(),
-        new OpenLayers.Control.MousePosition()
-      ],
-      numZoomLevels: 16
-    }
-    map = new OpenLayers.Map('map', options)
-    self.map = map // For debug
-    wktfmt = new OpenLayers.Format.WKT({
-      externalProjection: new OpenLayers.Projection('EPSG:4326')
+    const projection = getProjection('EPSG:3857')
+    const extent = projection.getExtent()
+    ALayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getDefaultStyle('A')
     })
-    const graphic = new OpenLayers.Layer.Image(
-      'OpenLayers Image',
-      './lib/ol2/img/blank.gif',
-      new OpenLayers.Bounds(-100000, -100000, 100000, 100000), // TODO: initial scale ?
-      new OpenLayers.Size(426, 426)
-    )
-
-    layerInput = new OpenLayers.Layer.Vector('Input Vector Layer', {
-      styleMap: new OpenLayers.StyleMap({
-        temporary: OpenLayers.Feature.Vector.style.default,
-        default: OpenLayers.Feature.Vector.style.default,
-        select: OpenLayers.Feature.Vector.style.select
+    const ASource = ALayer.getSource()
+    ASource.set('type', 'A')
+    ASource.on('addfeature', onInputFeatureChanged)
+    ASource.on('changefeature', onInputFeatureChanged)
+    ASource.on('removefeature', onInputFeatureChanged)
+    BLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getDefaultStyle('B')
+    })
+    const BSource = BLayer.getSource()
+    BSource.set('type', 'B')
+    BSource.on('addfeature', onInputFeatureChanged)
+    BSource.on('changefeature', onInputFeatureChanged)
+    BSource.on('removefeature', onInputFeatureChanged)
+    resultLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getDefaultStyle('Result')
+    })
+    resultLayer.getSource().set('type', 'Result')
+    expectedLayer = new VectorLayer({
+      source: new VectorSource(),
+      style: getDefaultStyle('Expected')
+    })
+    expectedLayer.getSource().set('type', 'Expected')
+    map = new Map({
+      controls: defaultControls().extend([
+        new MousePosition({
+          coordinateFormat: createStringXY(4),
+          projection: 'EPSG:3857',
+          className: 'custom-mouse-position',
+          target: document.getElementById('mouse-position-div')
+        })
+      ]),
+      layers: [
+        new ImageLayer({
+          source: new Static({
+            url: '/images/blank.gif',
+            projection,
+            imageExtent: extent
+          })
+        }),
+        // TODO: Needs attribution and layer control
+        // new TileLayer({
+        //   source: new OSM()
+        // }),
+        ALayer,
+        BLayer,
+        resultLayer,
+        expectedLayer
+      ],
+      target: 'map',
+      view: new View({
+        projection, // 'EPSG:3857',
+        center: [0, 0],
+        zoom: 1,
+        maxZoom: 22
       })
     })
-    layerInput.events.on({
-      featureadded: onInputFeatureAdded,
-      beforefeaturemodified: function (event) {
-        const feature = event.feature
-        const strtype = getFeatureType(feature)
-        setInputType(strtype)
-        updateInput()
-        feature.layer.redraw() // for vertex marker
+    self.map = map // For debug
+
+    editBar = new EditBarExt({
+      interactions: {
+        Info: false,
+        Split: false,
+        Offset: false
       },
-      featuremodified: function (event) {
-        updateInput()
-      },
-      afterfeaturemodified: function (event) {
-        updateInput()
-      }
+      source: ALayer.getSource(),
+      layers: filterLayers,
+      drawStyle: getDefaultStyle('A'),
+      selectStyle: getEditingStyleFunction(),
+      modifyStyle: getEditingStyleFunction()
     })
-    layerOutput = new OpenLayers.Layer.Vector('Output Vector Layer')
+    editBar.setPosition('bottom')
+    map.addControl(editBar)
 
-    map.addLayers([graphic, layerInput, layerOutput])
-    map.addControl(new OpenLayers.Control.EditingToolbarExt(layerInput))
+    map.getView().fit([-10, -10, 416, 416])
 
-    map.zoomToExtent(new OpenLayers.Bounds(-10, -10, 416, 416))
+    wktFormat = new WKT()
   }
 
-  const onInputFeatureAdded = (event) => {
-    const feature = event.feature
-    const strtype = getInputType()
-    setFeatureType(feature, strtype)
-    setFeatureStyle(feature, strtype)
-    if (strtype === 'a') {
-      if (self.featureA) {
-        destroyFeatures(layerInput, self.featureA)
-      }
-      self.featureA = feature
-    } else if (strtype === 'b') {
-      if (self.featureB) {
-        destroyFeatures(layerInput, self.featureB)
-      }
-      self.featureB = feature
+  const filterLayers = (layer) => {
+    if (state.inputType === 'A') {
+      return layer === ALayer
+    } else if (state.inputType === 'B') {
+      return layer === BLayer
     }
-    updateInput()
   }
 
-  const featureToWkt = (feature) => {
+  const getDefaultStyle = (type) => {
+    const fillColor = {
+      A: 'rgba(200,200,255,0.6)', // 'rgba(223,223,255,0.4)',
+      B: 'rgba(255,200,200,0.6)', // 'rgba(255,223,223,0.4)',
+      Result: 'rgba(255,255,100,0.6)', // 'rgba(255,255,194,0.4)',
+      Expected: 'rgba(194,255,194,0.4)'
+    }
+    const strokeColor = {
+      A: 'rgba(0,0,255,1)', // '#2929fd',
+      B: 'rgba(150,0,0,1)', // '#a52929',
+      Result: 'rgba(120,180,0,1)', // '#acd62b',
+      Expected: '#2bd656'
+    }
+    return {
+      'fill-color': fillColor[type] || 'rgba(200,200,255,0.6)', // 'rgba(223,223,255,0.4)',
+      'stroke-color': strokeColor[type] || 'rgba(0,0,255,1)', // '#2929fd',
+      'stroke-width': 1,
+      'circle-radius': 6,
+      'circle-fill-color': fillColor[type] || 'rgba(200,200,255,0.6)', // 'rgba(223,223,255,0.4)',
+      'circle-stroke-color': strokeColor[type] || 'rgba(0,0,255,1)' // '#2929fd'
+    }
+  }
+
+  const getEditingStyleFunction = () => {
+    const styles = {}
+    // Use result color for now
+    const fillColor = [255, 255, 100, 0.6]
+    const strokeColor = [120, 180, 0, 1]
+    const width = 2
+    styles.Polygon = [
+      new Style({
+        fill: new Fill({
+          color: fillColor
+        })
+      }),
+      new Style({
+        stroke: new Stroke({
+          color: strokeColor,
+          width
+        })
+      })
+    ]
+    styles.MultiPolygon = styles.Polygon
+
+    styles.LineString = [
+      new Style({
+        stroke: new Stroke({
+          color: strokeColor,
+          width
+        })
+      })
+    ]
+    styles.MultiLineString = styles.LineString
+
+    styles.Circle = styles.Polygon // .concat(styles.LineString)
+
+    styles.Point = [
+      new Style({
+        image: new CircleStyle({
+          radius: 6,
+          fill: new Fill({
+            color: fillColor
+          }),
+          stroke: new Stroke({
+            color: strokeColor,
+            width
+          })
+        }),
+        zIndex: Infinity
+      })
+    ]
+    styles.MultiPoint = styles.Point
+
+    styles.GeometryCollection = styles.Polygon.concat(
+      styles.LineString,
+      styles.Point
+    )
+
+    return function (feature) {
+      if (!feature.getGeometry()) {
+        return null
+      }
+      return styles[feature.getGeometry().getType()]
+    }
+  }
+
+  const onInputFeatureChanged = (event) => {
+    const source = event.target
+    updateInput(source)
+  }
+
+  const featureToWkt = (features) => {
     let str = ''
-    if (isEmpty(feature)) {
+    if (isEmpty(features)) {
       return str
     }
 
-    if (feature.constructor !== Array) {
-      str = wktfmt.write(feature)
+    if (features.length === 1) {
+      str = wktFormat.writeFeature(features[0])
       // not a good idea in general, just for this demo
       str = str.replace(/,/g, ', ')
     } else {
       str = 'GEOMETRYCOLLECTION('
-      for (let i = 0; i < feature.length; i++) {
-        str += wktfmt.write(feature[i])
-        if (i !== feature.length - 1) {
+      for (let i = 0; i < features.length; i++) {
+        str += wktFormat.writeFeature(features[i])
+        if (i !== features.length - 1) {
           str += ', '
         }
       }
@@ -156,286 +302,162 @@ export default function MapIoPanel (context) {
     if (isEmpty(wkt)) {
       return null
     }
-    const feature = wktfmt.read(wkt)
-    // remove empty geometry from GEOMETRYCOLLECTION
-    if (!isEmpty(feature) && feature.constructor === Array) {
-      return feature.filter((f) => !isEmpty(f))
-    } else {
-      return feature
+    // Allow EMPTY in multi geometries to avoid OpenLayers WKT parse error
+    if (wkt.startsWith('MULTI') || wkt.startsWith('GEOMETRYCOLLECTION')) {
+      if (wkt.indexOf('EMPTY') > 0 && wkt.indexOf('(') > 0) {
+        wkt = wkt.replace(/,?\s?EMPTY/g, '')
+      }
     }
-  }
-
-  const addFeatures = (layer, feature) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    layerInput.events.un({
-      featureadded: onInputFeatureAdded
-    })
-    if (feature.constructor !== Array) {
-      layer.addFeatures([feature])
-    } else {
-      layer.addFeatures(feature)
-    }
-    layerInput.events.on({
-      featureadded: onInputFeatureAdded
-    })
+    const feature = wktFormat.readFeature(wkt)
+    return feature
   }
 
   const zoomToExtent = (feature, isFull) => {
-    let bounds
+    let extent = null
     if (!isEmpty(feature) && !isFull) {
       if (feature.constructor !== Array) {
-        bounds = feature.geometry.getBounds()
+        extent = feature.getGeometry().getExtent()
       } else {
         for (let i = 0; i < feature.length; i++) {
           if (!isEmpty(feature[i])) {
-            if (isEmpty(bounds)) {
-              bounds = feature[i].geometry.getBounds()
+            if (isEmpty(extent)) {
+              extent = feature[i].getGeometry().getExtent()
             } else {
-              bounds.extend(feature[i].geometry.getBounds())
+              extent = extend(extent, feature[i].getGeometry().getExtent())
             }
           }
         }
       }
     } else if (isFull) {
-      const features = layerInput.features.concat(layerOutput.features)
+      const features = [ALayer, BLayer, resultLayer, expectedLayer].flatMap((layer) => {
+        return layer.getSource().getFeatures()
+      })
       for (let i = 0; i < features.length; i++) {
         if (!isEmpty(features[i])) {
-          if (isEmpty(bounds)) {
-            bounds = features[i].geometry.getBounds()
+          if (isEmpty(extent)) {
+            extent = features[i].getGeometry().getExtent()
           } else {
-            bounds.extend(features[i].geometry.getBounds())
+            extent = extend(extent, features[i].getGeometry().getExtent())
           }
         }
       }
     }
-    if (!isEmpty(bounds)) {
-      map.zoomToExtent(bounds)
+    if (!isEmpty(extent)) {
+      const size = getSize(extent)
+      const max = Math.max(size[0], size[1])
+      extent = buffer(extent, max * 0.2)
+      map.getView().fit(extent)
     }
   }
 
-  const destroyFeatures = (layer, feature) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    if (feature.constructor !== Array) {
-      layer.destroyFeatures([feature])
-    } else {
-      layer.destroyFeatures(feature)
-    }
-    feature = null
-  }
-
-  const setDefaultStyle = (strtype) => {
-    if (strtype === 'a') {
-      OpenLayers.Feature.Vector.style.default.strokeColor = '#2929fd'
-      OpenLayers.Feature.Vector.style.default.fillColor = '#dfdfff'
-    } else if (strtype === 'b') {
-      OpenLayers.Feature.Vector.style.default.strokeColor = '#a52929'
-      OpenLayers.Feature.Vector.style.default.fillColor = '#ffdfdf'
-    }
-  }
-
-  const setFeatureStyle = (feature, strtype) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    const style = {
-      fillColor: '#ee9900',
-      fillOpacity: 0.4,
-      hoverFillColor: 'white',
-      hoverFillOpacity: 0.8,
-      strokeColor: '#ee9900',
-      strokeOpacity: 1,
-      strokeWidth: 1,
-      strokeLinecap: 'round',
-      strokeDashstyle: 'solid',
-      hoverStrokeColor: 'red',
-      hoverStrokeOpacity: 1,
-      hoverStrokeWidth: 0.2,
-      pointRadius: 6,
-      hoverPointRadius: 1,
-      hoverPointUnit: '%',
-      pointerEvents: 'visiblePainted',
-      cursor: 'inherit'
-    }
-    if (strtype === 'a') {
-      style.strokeColor = '#2929fd'
-      style.fillColor = '#dfdfff'
-    } else if (strtype === 'b') {
-      style.strokeColor = '#a52929'
-      style.fillColor = '#ffdfdf'
-    } else if (strtype === 'result') {
-      style.strokeColor = '#acd62b'
-      style.fillColor = '#ffffc2'
-    } else if (strtype === 'expected') {
-      style.strokeColor = '#2bd656'
-      style.fillColor = '#c2ffc2'
-    }
-
-    if (feature.constructor !== Array) {
-      feature.style = style
-    } else {
-      for (let i = 0; i < feature.length; i++) {
-        feature[i].style = style
-      }
-    }
-  }
-
-  const setFeatureType = (feature, strtype) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    if (feature.constructor !== Array) {
-      feature.attributes.type = strtype
-    } else {
-      for (let i = 0; i < feature.length; i++) {
-        feature[i].attributes.type = strtype
-      }
-    }
-  }
-
-  const getFeatureType = (feature) => {
-    if (isEmpty(feature)) {
-      return
-    }
-
-    let strtype = ''
-    if (feature.constructor !== Array) {
-      strtype = feature.attributes.type
-    } else if (feature.length > 0) {
-      strtype = feature[0].attributes.type
-    }
-    return strtype
-  }
-
-  const displayInputGeometries = (visibility) => {
-    layerInput.setVisibility(visibility)
+  const displayInputGeometries = (visible) => {
+    ALayer.setVisible(visible)
+    BLayer.setVisible(visible)
   }
 
   // TODO: move to IOPanel
   const switchFixedScale = (selected) => {
-    const divFixedScale = document.getElementById('divFixedScale')
+    const fixedScaleDiv = document.getElementById('fixed-scale-div')
     if (selected === 'FIXED') {
-      divFixedScale.style.display = 'block'
+      fixedScaleDiv.style.display = 'block'
     } else {
-      divFixedScale.style.display = 'none'
+      fixedScaleDiv.style.display = 'none'
     }
   }
 
   this.updatePrecisionModel = (type, scale) => {
-    const selPrecisionModel = document.getElementById('selPrecisionModel')
+    const precisionModelSelect = document.getElementById('precision-model-select')
     if (type === 'FLOATING' || type === 'FLOATING_SINGLE') {
-      selPrecisionModel.value = type
+      precisionModelSelect.value = type
     } else if (!isEmpty(scale)) {
-      selPrecisionModel.value = 'FIXED'
-      const txtFixedScale = document.getElementById('txtFixedScale')
-      txtFixedScale.value = scale
+      precisionModelSelect.value = 'FIXED'
+      const fixedScaleText = document.getElementById('fixed-scale-text')
+      fixedScaleText.value = scale
     }
-    switchFixedScale(selPrecisionModel.value)
+    switchFixedScale(precisionModelSelect.value)
   }
 
-  const getInputType = () => {
-    if (document.getElementById('radA').checked) {
-      return 'a'
-    } else if (document.getElementById('radB').checked) {
-      return 'b'
-    }
-    return 'a'
-  }
-
-  const setInputType = (strtype) => {
-    if (strtype === 'a') {
-      document.getElementById('radA').checked = true
-    } else if (strtype === 'b') {
-      document.getElementById('radB').checked = true
+  this.setOutputType = (type) => {
+    if (type === 'Result') {
+      document.getElementById('result-radio').checked = true
+      switchOutput('Result')
+    } else if (type === 'Expected') {
+      document.getElementById('expected-radio').checked = true
+      switchOutput('Expected')
     }
   }
 
-  this.setOutputType = (strtype) => {
-    if (strtype === 'result') {
-      document.getElementById('radResult').checked = true
-      switchOutput('result')
-    } else if (strtype === 'expected') {
-      document.getElementById('radExpected').checked = true
-      switchOutput('expected')
+  const switchInput = (type) => {
+    const inputAText = document.getElementById('input-a-text')
+    const inputBText = document.getElementById('input-b-text')
+    // TODO: Consider to set editBar button's color (blue/red)
+    if (type === 'A') {
+      inputAText.style.display = 'block'
+      inputBText.style.display = 'none'
+      editBar.setDrawSourceAndStyle(ALayer.getSource(), getDefaultStyle('A'))
+    } else if (type === 'B') {
+      inputAText.style.display = 'none'
+      inputBText.style.display = 'block'
+      editBar.setDrawSourceAndStyle(BLayer.getSource(), getDefaultStyle('B'))
     }
   }
 
-  const switchInput = (strtype) => {
-    const txtInputA = document.getElementById('txtInputA')
-    const txtInputB = document.getElementById('txtInputB')
-    if (strtype === 'a') {
-      txtInputA.style.display = 'block'
-      txtInputB.style.display = 'none'
-    } else if (strtype === 'b') {
-      txtInputA.style.display = 'none'
-      txtInputB.style.display = 'block'
-    }
-    setDefaultStyle(strtype)
-  }
-
-  const updateInput = () => {
-    const strtype = getInputType()
+  const updateInput = (source) => {
+    const type = source.get('type')
+    const features = source.getFeatures()
     let wkt = ''
-    if (strtype === 'a' && self.featureA) {
-      wkt = featureToWkt(self.featureA)
-      document.getElementById('txtInputA').value = wkt
-    } else if (strtype === 'b' && self.featureB) {
-      wkt = featureToWkt(self.featureB)
-      document.getElementById('txtInputB').value = wkt
+    if (type === 'A') {
+      wkt = featureToWkt(features)
+      document.getElementById('input-a-text').value = wkt
+    } else if (type === 'B') {
+      wkt = featureToWkt(features)
+      document.getElementById('input-b-text').value = wkt
     }
-    setDefaultStyle(strtype)
   }
 
-  const switchOutput = (strtype) => {
-    const txtResult = document.getElementById('txtResult')
-    const txtExpected = document.getElementById('txtExpected')
-    if (strtype === 'result') {
-      txtResult.style.display = 'block'
-      txtExpected.style.display = 'none'
-    } else if (strtype === 'expected') {
-      txtResult.style.display = 'none'
-      txtExpected.style.display = 'block'
+  const switchOutput = (type) => {
+    const resultText = document.getElementById('result-text')
+    const expectedText = document.getElementById('expected-text')
+    if (type === 'Result') {
+      resultText.style.display = 'block'
+      expectedText.style.display = 'none'
+    } else if (type === 'Expected') {
+      resultText.style.display = 'none'
+      expectedText.style.display = 'block'
     }
-    setDefaultStyle(strtype)
   }
 
-  this.loadInput = (wkt, strtype) => {
-    if (isEmpty(strtype)) {
-      strtype = getInputType()
+  this.loadInput = (wkt, type) => {
+    if (isEmpty(type)) {
+      type = state.inputType
     }
-    const txtInputA = document.getElementById('txtInputA')
-    const txtInputB = document.getElementById('txtInputB')
-    if (strtype === 'a') {
+    const inputAText = document.getElementById('input-a-text')
+    const inputBText = document.getElementById('input-b-text')
+    if (type === 'A') {
       if (isEmpty(wkt)) {
-        wkt = txtInputA.value
+        wkt = inputAText.value
       } else {
-        txtInputA.value = wkt
+        inputAText.value = wkt
       }
-    } else if (strtype === 'b') {
+    } else if (type === 'B') {
       if (isEmpty(wkt)) {
-        wkt = txtInputB.value
+        wkt = inputBText.value
       } else {
-        txtInputB.value = wkt
+        inputBText.value = wkt
       }
     }
     const feature = featureFromWkt(wkt)
     if (feature) {
-      setFeatureType(feature, strtype)
-      setFeatureStyle(feature, strtype)
-      addFeatures(layerInput, feature)
-      if (strtype === 'a') {
-        destroyFeatures(layerInput, self.featureA)
-        self.featureA = feature
-      } else if (strtype === 'b') {
-        destroyFeatures(layerInput, self.featureB)
-        self.featureB = feature
+      if (type === 'A') {
+        ALayer.getSource().clear()
+        ALayer.getSource().un('addfeature', onInputFeatureChanged)
+        ALayer.getSource().addFeature(feature)
+        ALayer.getSource().on('addfeature', onInputFeatureChanged)
+      } else if (type === 'B') {
+        BLayer.getSource().clear()
+        BLayer.getSource().un('addfeature', onInputFeatureChanged)
+        BLayer.getSource().addFeature(feature)
+        BLayer.getSource().on('addfeature', onInputFeatureChanged)
       }
       zoomToExtent(feature, false)
     }
@@ -445,47 +467,39 @@ export default function MapIoPanel (context) {
     if (!isEmpty(result)) {
       const feature = featureFromWkt(result)
       if (feature) {
-        setFeatureStyle(feature, 'result')
-        addFeatures(layerOutput, feature)
-        destroyFeatures(layerOutput, featureResult)
-        featureResult = feature
+        resultLayer.getSource().clear()
+        resultLayer.getSource().addFeature(feature)
       }
     }
     if (!isEmpty(expected)) {
       const feature = featureFromWkt(expected)
       if (feature) {
-        setFeatureStyle(feature, 'expected')
-        addFeatures(layerOutput, feature)
-        destroyFeatures(layerOutput, featureExpected)
-        featureExpected = feature
+        expectedLayer.getSource().clear()
+        expectedLayer.getSource().addFeature(feature)
       }
     }
     zoomToExtent(null, true)
   }
 
   this.clearInput = (isAll) => {
-    if ((getInputType() === 'a' || isAll)) {
-      if (self.featureA) {
-        destroyFeatures(layerInput, self.featureA)
-      }
-      document.getElementById('txtInputA').value = ''
+    if ((state.inputType === 'A' || isAll)) {
+      ALayer.getSource().clear()
+      document.getElementById('input-a-text').value = ''
     }
-    if ((getInputType() === 'b' || isAll)) {
-      if (self.featureB) {
-        destroyFeatures(layerInput, self.featureB)
-      }
-      document.getElementById('txtInputB').value = ''
+    if ((state.inputType === 'B' || isAll)) {
+      BLayer.getSource().clear()
+      document.getElementById('input-b-text').value = ''
     }
   }
 
   this.clearOutput = () => {
-    destroyFeatures(layerOutput, featureResult)
-    destroyFeatures(layerOutput, featureExpected)
-    const txtResult = document.getElementById('txtResult')
-    const txtExpected = document.getElementById('txtExpected')
-    txtResult.value = ''
-    txtExpected.value = ''
-    txtResult.style.backgroundColor = '#ffffff'
-    txtExpected.style.backgroundColor = '#ffffff'
+    resultLayer.getSource().clear()
+    expectedLayer.getSource().clear()
+    const resultText = document.getElementById('result-text')
+    const expectedText = document.getElementById('expected-text')
+    resultText.value = ''
+    expectedText.value = ''
+    resultText.style.backgroundColor = '#ffffff'
+    expectedText.style.backgroundColor = '#ffffff'
   }
 }

@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview --host"
   },
   "devDependencies": {
     "eslint": "^8.48.0",
@@ -14,6 +14,8 @@
     "eslint-plugin-import": "^2.28.1",
     "eslint-plugin-n": "^16.0.2",
     "eslint-plugin-promise": "^6.1.1",
+    "ol": "^8.1.0",
+    "ol-ext": "^4.0.11",
     "vite": "^4.4.5"
   }
 }

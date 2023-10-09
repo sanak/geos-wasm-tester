@@ -8,28 +8,28 @@ export default function TestCasePanel (context) {
     const path = location.href.replace('index.html', '')
     addTestXmls(`${path}/tests/testxml.json`)
 
-    const btnLoadTestXml = document.getElementById('btnLoadTestXml')
-    const selTestCase = document.getElementById('selTestCase')
-    btnLoadTestXml.addEventListener('click', loadTestXml)
-    selTestCase.addEventListener('change', loadTestCase)
+    const loadTestXmlButton = document.getElementById('load-test-xml-button')
+    const testCaseSelect = document.getElementById('test-case-select')
+    loadTestXmlButton.addEventListener('click', loadTestXml)
+    testCaseSelect.addEventListener('change', loadTestCase)
     return self
   }
 
   const addTestXmls = async (testXmlJsonPath) => {
     const res = await fetch(testXmlJsonPath)
     const testXmlJson = await res.json()
-    const selTestXml = document.getElementById('selTestXml')
+    const testXmlSelect = document.getElementById('test-xml-select')
     const optDefault = document.createElement('option')
     optDefault.selected = true
     optDefault.text = ' --- Select Below ---'
-    selTestXml.appendChild(optDefault)
+    testXmlSelect.appendChild(optDefault)
     for (const key of Object.keys(testXmlJson)) {
       if (key.startsWith('//')) {
         continue
       }
       const optGroup = document.createElement('optgroup')
       optGroup.label = key
-      selTestXml.appendChild(optGroup)
+      testXmlSelect.appendChild(optGroup)
       const items = testXmlJson[key]
       for (let i = 0; i < items.length; i++) {
         if (items[i].startsWith('//')) {
@@ -44,8 +44,8 @@ export default function TestCasePanel (context) {
   }
 
   const loadTestXml = async () => {
-    const optsTestXml = document.getElementById('selTestXml').options
-    const optsTestCase = document.getElementById('selTestCase').options
+    const optsTestXml = document.getElementById('test-xml-select').options
+    const optsTestCase = document.getElementById('test-case-select').options
 
     optsTestCase.length = 1
 
@@ -77,7 +77,7 @@ export default function TestCasePanel (context) {
       return
     }
     const caseIdx =
-      document.getElementById('selTestCase').options.selectedIndex
+      document.getElementById('test-case-select').options.selectedIndex
     if (caseIdx === 0) {
       return
     }
@@ -93,12 +93,12 @@ export default function TestCasePanel (context) {
 
     const nodeCase = xmldom.getElementsByTagName('case')[caseIdx - 1]
     let a = nodeCase.getElementsByTagName('a')[0].firstChild.data
-    a = context.geosOp.formatWkt(a)
+    a = context.geosOp.normalizeWkt(a)
     let b = null
     const nodeBs = nodeCase.getElementsByTagName('b')
     if (nodeBs.length > 0) {
       b = nodeBs[0].firstChild.data
-      b = context.geosOp.formatWkt(b)
+      b = context.geosOp.normalizeWkt(b)
     }
     const nodeTest = nodeCase.getElementsByTagName('test')[0]
     const nodeOp = nodeTest.getElementsByTagName('op')[0]
@@ -113,7 +113,7 @@ export default function TestCasePanel (context) {
     let expected = nodeOp.firstChild.data
     expected = expected.replace(/^\s+|\n|\s+$/g, '')
     if (isWkt(expected)) {
-      expected = context.geosOp.formatWkt(expected)
+      expected = context.geosOp.normalizeWkt(expected)
     }
     switch (opname.toLowerCase()) {
       case 'copy':
@@ -195,9 +195,9 @@ export default function TestCasePanel (context) {
         opname = 'clipByRect'
         break
     }
-    context.mapIoPanel.loadInput(a, 'a')
+    context.mapIoPanel.loadInput(a, 'A')
     if (!isEmpty(b)) {
-      context.mapIoPanel.loadInput(b, 'b')
+      context.mapIoPanel.loadInput(b, 'B')
     }
     if (context.operationPanel.updateOperation(opname, arg1, arg2, arg3, arg4, arg5, arg6, arg7)) {
       context.geosOp.compute(expected)
