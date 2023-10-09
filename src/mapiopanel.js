@@ -158,7 +158,8 @@ export default function MapIoPanel (context) {
 
     editBar = new EditBarExt({
       interactions: {
-        Info: false
+        Info: false,
+        Offset: false
       },
       source: ALayer.getSource(),
       layers: filterLayers,
@@ -166,7 +167,7 @@ export default function MapIoPanel (context) {
       selectStyle: getEditingStyleFunction(),
       modifyStyle: getEditingStyleFunction()
     })
-    editBar.getInteraction('')
+    editBar.setPosition('bottom')
     map.addControl(editBar)
 
     map.getView().fit([-10, -10, 416, 416])
@@ -337,7 +338,7 @@ export default function MapIoPanel (context) {
     if (!isEmpty(extent)) {
       const size = getSize(extent)
       const max = Math.max(size[0], size[1])
-      extent = buffer(extent, max * 0.1)
+      extent = buffer(extent, max * 0.2)
       map.getView().fit(extent)
     }
   }

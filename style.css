@@ -43,9 +43,11 @@ body {
 }
 #test-xml-select {
   min-width: auto;
+  max-width: 75vw;
 }
 #test-case-select {
   min-width: auto;
+  max-width: 75vw;
 }
 
 .left div
@@ -81,6 +83,7 @@ option.binary {
 }
 .arg {
   display: flex;
+  align-items: center;
 }
 .arg > label {
   text-align: right;
@@ -111,23 +114,20 @@ option.binary {
   align-items: center;
 }
 .status-bar > div.display {
-  flex: 1;
   text-align: center;
 }
-.status-bar > div.pm {
-  flex: 2;
+.status-bar > div.precision-model {
   display: flex;
   align-items: center;
-}
-.status-bar > div.pm > div {
-  margin-left: 0.3em;
+  margin-left: 1em;
+  margin-right: auto;
 }
 #fixed-scale-text {
   width: 50px;
   text-align: right;
 }
 #mouse-position-div {
-  flex: 3;
+  flex: 1;
   text-align: right;
 }
 
