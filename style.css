@@ -69,11 +69,15 @@ h1 > img {
 option.unary {
   background-image: url("./assets/images/testbuilder/UnaryGeomFunction.png");
   background-repeat: no-repeat;
+  background-position-x: 0.2em;
+  background-position-y: center;
   color: blue;
 }
 option.binary {
   background-image: url("./assets/images/testbuilder/BinaryGeomFunction.png");
   background-repeat: no-repeat;
+  background-position-x: 0.2em;
+  background-position-y: center;
   color: red;
 }
 #operation-select {
