@@ -389,7 +389,7 @@ export default function MapIoPanel (context) {
   const switchInput = (type) => {
     const inputAText = document.getElementById('input-a-text')
     const inputBText = document.getElementById('input-b-text')
-    // TODO:
+    // TODO: Consider to set editBar button's color (blue/red)
     if (type === 'A') {
       inputAText.style.display = 'block'
       inputBText.style.display = 'none'
