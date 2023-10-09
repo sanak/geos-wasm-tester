@@ -132,7 +132,7 @@ export default function MapIoPanel (context) {
       layers: [
         new ImageLayer({
           source: new Static({
-            url: '/images/blank.gif',
+            url: '/geos-wasm-tester/images/blank.gif',
             projection,
             imageExtent: extent
           })
