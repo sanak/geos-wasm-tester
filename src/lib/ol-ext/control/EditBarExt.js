@@ -334,7 +334,17 @@ const editBarExt = class EditBarExt extends Bar {
         this._interactions.DrawHole = options.interactions.DrawHole
       } else {
         this._interactions.DrawHole = new DrawHole({
-          style: this._selectStyle
+          style: this._selectStyle,
+          // Count inserted points
+          geometryFunction: function (coordinates, geometry) {
+            this.nbpts = coordinates[0].length
+            if (geometry) {
+              geometry.setCoordinates([coordinates[0].concat([coordinates[0][0]])])
+            } else {
+              geometry = new Polygon(coordinates)
+            }
+            return geometry
+          }
         })
       }
       this._setDrawPolygon(
