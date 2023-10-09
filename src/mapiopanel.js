@@ -159,6 +159,7 @@ export default function MapIoPanel (context) {
     editBar = new EditBarExt({
       interactions: {
         Info: false,
+        Split: false,
         Offset: false
       },
       source: ALayer.getSource(),
