@@ -301,6 +301,12 @@ export default function MapIoPanel (context) {
     if (isEmpty(wkt)) {
       return null
     }
+    // Allow EMPTY in multi geometries to avoid OpenLayers WKT parse error
+    if (wkt.startsWith('MULTI') || wkt.startsWith('GEOMETRYCOLLECTION')) {
+      if (wkt.indexOf('EMPTY') > 0 && wkt.indexOf('(') > 0) {
+        wkt = wkt.replace(/,?\s?EMPTY/g, '')
+      }
+    }
     const feature = wktFormat.readFeature(wkt)
     return feature
   }
@@ -443,10 +449,14 @@ export default function MapIoPanel (context) {
     if (feature) {
       if (type === 'A') {
         ALayer.getSource().clear()
+        ALayer.getSource().un('addfeature', onInputFeatureChanged)
         ALayer.getSource().addFeature(feature)
+        ALayer.getSource().on('addfeature', onInputFeatureChanged)
       } else if (type === 'B') {
         BLayer.getSource().clear()
-        ALayer.getSource().addFeature(feature)
+        BLayer.getSource().un('addfeature', onInputFeatureChanged)
+        BLayer.getSource().addFeature(feature)
+        BLayer.getSource().on('addfeature', onInputFeatureChanged)
       }
       zoomToExtent(feature, false)
     }
